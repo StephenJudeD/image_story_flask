@@ -106,11 +106,26 @@ class ImageStoryGenerator:
 app = Flask(__name__)
 image_story_generator = ImageStoryGenerator(logger)
 
+#@app.route('/')
+#def home():
+    #return render_template_string("""
+    #<h1>Welcome to Image Story Generator</h1>
+    #<p>Use the /generate_story endpoint to generate a story from an image.</p>
+    #""")
 @app.route('/')
 def home():
     return render_template_string("""
     <h1>Welcome to Image Story Generator</h1>
-    <p>Use the /generate_story endpoint to generate a story from an image.</p>
+    <form action="/generate_story" method="post" enctype="multipart/form-data">
+        <input type="file" name="image" required><br><br>
+        <label for="names">Names:</label>
+        <input type="text" name="names" required><br><br>
+        <label for="genre">Genre:</label>
+        <input type="text" name="genre" required><br><br>
+        <label for="length">Desired Length:</label>
+        <input type="number" name="length" required><br><br>
+        <input type="submit" value="Generate Story">
+    </form>
     """)
 
 @app.route('/generate_story', methods=['POST'])
