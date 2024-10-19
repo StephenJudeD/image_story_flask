@@ -105,13 +105,23 @@ class ImageStoryGenerator:
 app = Flask(__name__)
 image_story_generator = ImageStoryGenerator(logger)
 
+@app.route('/')
+def home():
+    return render_template_string("""
+    <h1>Welcome to Image Story Generator</h1>
+    <p>Use the /generate_story endpoint to generate a story from an image.</p>
+    """)
+
 @app.route('/generate_story', methods=['POST'])
 def generate_story():
     # Get the input data from the request
-    image_file = request.files['image']
+    image_file = request.files.get('image')
     people_names = request.form.getlist('names')
-    genre = request.form['genre']
-    desired_length = int(request.form['length'])
+    genre = request.form.get('genre', 'general')
+    desired_length = int(request.form.get('length', 200))
+
+    if not image_file:
+        return jsonify({'error': 'No image file provided'}), 400
 
     # Generate the story based on the input data
     story = image_story_generator.generate_story_from_image(image_file.read(), people_names, genre, desired_length)
