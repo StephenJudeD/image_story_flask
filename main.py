@@ -155,18 +155,28 @@ def home():
 def generate_story():
     # Get the input data from the request
     image_file = request.files.get('image')
+    
+    if not image_file:
+        return jsonify({'error': 'No image file provided'}), 400
+
+    # Store the name and the genre
     people_names = request.form.getlist('names')
     genre = request.form.get('genre', 'general')
     desired_length = int(request.form.get('length', 200))
 
-    if not image_file:
-        return jsonify({'error': 'No image file provided'}), 400
-
+    # Read the image data
+    image_data = image_file.read()
     # Generate the story based on the input data
-    story = image_story_generator.generate_story_from_image(image_file.read(), people_names, genre, desired_length)
+    story = image_story_generator.generate_story_from_image(image_data, people_names, genre, desired_length)
+
+    # Encode image for displaying in HTML
+    encoded_image = base64.b64encode(image_data).decode("utf-8")
+
+    # Check if the story was generated successfully or an error occurred
+    if "Error generating story" in story:
+        return jsonify({'error': story}), 500
 
     # Create an HTML page displaying the image and the story
-    image_data = base64.b64encode(image_file.read()).decode("utf-8")
     return render_template_string(f"""
     <!DOCTYPE html>
     <html lang="en">
@@ -176,25 +186,25 @@ def generate_story():
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
         <title>Generated Story</title>
         <style>
-            .story-container {
+            .story-container {{
                 display: flex;
                 justify-content: space-around;
                 align-items: flex-start;
                 margin-top: 20px;
-            }
-            .story-image {
+            }}
+            .story-image {{
                 max-width: 300px;
                 border: 1px solid #ccc;
                 border-radius: 8px;
-            }
-            .story-text {
+            }}
+            .story-text {{
                 max-width: 600px;
                 padding: 15px;
                 background-color: #f8f9fa;
                 border: 1px solid #888;
                 border-radius: 8px;
                 box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            }
+            }}
         </style>
     </head>
     <body>
@@ -202,7 +212,7 @@ def generate_story():
             <h1 class="text-center">Generated Story</h1>
             <div class="story-container">
                 <div class="story-image">
-                    <img src="data:image/jpeg;base64,{image_data}" class="img-fluid" alt="Uploaded Image">
+                    <img src="data:image/jpeg;base64,{encoded_image}" class="img-fluid" alt="Uploaded Image">
                 </div>
                 <div class="story-text">
                     <h3>Your Story:</h3>
