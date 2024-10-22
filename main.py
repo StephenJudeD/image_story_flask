@@ -120,14 +120,14 @@ def home():
     <body>
         <div class="container mt-5">
             <h1 class="text-center">Image Story Generator</h1>
-            <form id="storyForm" action="/generate_story" method="post" enctype="multipart/form-data">
+            <form id="storyForm" action="/generate_story" method="POST" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="image">Upload Image:</label>
                     <input type="file" class="form-control" name="image" accept="image/*" required>
                 </div>
                 <div class="form-group">
                     <label for="names">Names (comma separated):</label>
-                    <input type="text" class="form-control" name="names" placeholder="Enter names" required>
+                    <input type="text" class="form-control" name="names" placeholder="Enter names, e.g. Alice, Bob" required>
                 </div>
                 <div class="form-group">
                     <label for="genre">Genre:</label>
@@ -135,9 +135,9 @@ def home():
                 </div>
                 <div class="form-group">
                     <label for="length">Desired Length (in words):</label>
-                    <input type="number" class="form-control" name="length" required min="10>
+                    <input type="number" class="form-control" name="length" required min="10">
                 </div>
-                <button type="submit" class="btn btn-primary btn-block">Generate Story</button>
+                <button type="submit" class="btn btn-primary btn-lg btn-block">Generate Story</button>
             </form>
             <div id="message" class="mt-3"></div>
         </div>
