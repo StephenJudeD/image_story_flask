@@ -106,26 +106,48 @@ class ImageStoryGenerator:
 app = Flask(__name__)
 image_story_generator = ImageStoryGenerator(logger)
 
-#@app.route('/')
-#def home():
-    #return render_template_string("""
-    #<h1>Welcome to Image Story Generator</h1>
-    #<p>Use the /generate_story endpoint to generate a story from an image.</p>
-    #""")
 @app.route('/')
 def home():
     return render_template_string("""
-    <h1>Welcome to Image Story Generator</h1>
-    <form action="/generate_story" method="post" enctype="multipart/form-data">
-        <input type="file" name="image" required><br><br>
-        <label for="names">Names:</label>
-        <input type="text" name="names" required><br><br>
-        <label for="genre">Genre:</label>
-        <input type="text" name="genre" required><br><br>
-        <label for="length">Desired Length:</label>
-        <input type="number" name="length" required><br><br>
-        <input type="submit" value="Generate Story">
-    </form>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+        <title>Image Story Generator</title>
+    </head>
+    <body>
+        <div class="container mt-5">
+            <h1 class="text-center">Image Story Generator</h1>
+            <form id="storyForm" action="/generate_story" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="image">Upload Image:</label>
+                    <input type="file" class="form-control" name="image" accept="image/*" required>
+                </div>
+                <div class="form-group">
+                    <label for="names">Names (comma separated):</label>
+                    <input type="text" class="form-control" name="names" placeholder="Enter names" required>
+                </div>
+                <div class="form-group">
+                    <label for="genre">Genre:</label>
+                    <input type="text" class="form-control" name="genre" placeholder="Enter genre" required>
+                </div>
+                <div class="form-group">
+                    <label for="length">Desired Length (in words):</label>
+                    <input type="number" class="form-control" name="length" required min="10>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Generate Story</button>
+            </form>
+            <div id="message" class="mt-3"></div>
+        </div>
+        <script>
+            document.getElementById('storyForm').onsubmit = function() {
+                document.getElementById('message').innerText = 'Generating story...';
+            };
+        </script>
+    </body>
+    </html>
     """)
 
 @app.route('/generate_story', methods=['POST'])
