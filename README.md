@@ -32,7 +32,7 @@ The **Image Story Generator** is a Flask web application that allows users to up
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/your-username/image-story-generator.git
+   git clone https://github.com/StephenJudeD/image_story_flask.git
    cd image-story-generator
 
 
