@@ -34,3 +34,12 @@ The **Image Story Generator** is a Flask web application that allows users to up
    ```bash
    git clone https://github.com/your-username/image-story-generator.git
    cd image-story-generator
+
+
+   
+## Instructions:
+- Replace `your-username` in the clone link with your actual GitHub username.
+- Make sure to fill in the `OPENAI_API_KEY` section with your actual API key instruction.
+- Adjust any other sections as needed based on your specific application or personal styles.
+
+Feel free to modify this README as you see fit! Let me know if you need help with anything else.
