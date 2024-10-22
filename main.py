@@ -165,8 +165,57 @@ def generate_story():
     # Generate the story based on the input data
     story = image_story_generator.generate_story_from_image(image_file.read(), people_names, genre, desired_length)
 
-    # Return the story as a JSON response
-    return jsonify({'story': story})
+    # Create an HTML page displaying the image and the story
+    image_data = base64.b64encode(image_file.read()).decode("utf-8")
+    return render_template_string(f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+        <title>Generated Story</title>
+        <style>
+            .story-container {
+                display: flex;
+                justify-content: space-around;
+                align-items: flex-start;
+                margin-top: 20px;
+            }
+            .story-image {
+                max-width: 300px;
+                border: 1px solid #ccc;
+                border-radius: 8px;
+            }
+            .story-text {
+                max-width: 600px;
+                padding: 15px;
+                background-color: #f8f9fa;
+                border: 1px solid #888;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container mt-5">
+            <h1 class="text-center">Generated Story</h1>
+            <div class="story-container">
+                <div class="story-image">
+                    <img src="data:image/jpeg;base64,{image_data}" class="img-fluid" alt="Uploaded Image">
+                </div>
+                <div class="story-text">
+                    <h3>Your Story:</h3>
+                    <p>{story}</p>
+                </div>
+            </div>
+            <div class="text-center mt-3">
+                <a class="btn btn-primary" href="/">Generate Another Story</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    """)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
