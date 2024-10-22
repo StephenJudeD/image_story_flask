@@ -16,7 +16,6 @@ class ImageStoryGenerator:
         self.model = "gpt-4o-mini"
         self.temperature = 0.5
         self.max_tokens = 400
-        self.cache = {}
 
         # Prompt for the image processing API
         self.image_processing_prompt = """
@@ -65,17 +64,22 @@ class ImageStoryGenerator:
                 self.logger.error(f"Response: {response.text}")  # Log the full response if available
             return []
 
-    def generate_story_from_image(self, image_data, people_names, genre, desired_length):
+    def generate_story_from_image(self, image_data, character_info, genre, desired_length):
         self.logger.info("Generating story from image")
 
         image_content = self.process_image(image_data)
-        names_list = ", ".join(people_names)
-
+        characters_list = ', '.join(character_info.keys())
+        
         story_prompt = f"""
-        Based on the following image description and the provided character names: {names_list}, create a short story in the first person that is engaging and creative for a {genre} audience. The story should be no more than {desired_length} words.
+        Based on the following image description and the provided characters: {characters_list},
+        create a short story in the first person. The story should be engaging and creative for a {genre} audience 
+        and should be no more than {desired_length} words.
 
         Image Description:
         {image_content}
+
+        Include the characteristics of the characters: 
+        {character_info}
         """
 
         try:
@@ -119,18 +123,18 @@ def home():
     <body>
         <div class="container mt-5">
             <h1 class="text-center">Image Story Generator</h1>
-            <form id="storyForm" action="/generate_story" method="POST" enctype="multipart/form-data" onsubmit="return validateForm()">
+            <form id="storyForm" action="/generate_story" method="POST" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="image">Upload Image:</label>
                     <input type="file" class="form-control" name="image" accept="image/*" required>
                 </div>
                 <div class="form-group">
-                    <label for="names">Names (comma separated):</label>
-                    <input type="text" class="form-control" name="names" placeholder="Enter names, e.g. Stephen, Jude etc." required>
+                    <label for="character">Characters and Roles (format: Name - Role):</label>
+                    <textarea class="form-control" name="character" placeholder="E.g., Alice - The brave knight, Bob - The cunning wizard" required></textarea>
                 </div>
                 <div class="form-group">
                     <label for="genre">Genre:</label>
-                    <input type="text" class="form-control" name="genre" placeholder="Enter genre or theme, set the scene!" required>
+                    <input type="text" class="form-control" name="genre" placeholder="Enter genre" required>
                 </div>
                 <div class="form-group">
                     <label for="length">Desired Length (in words):</label>
@@ -140,36 +144,34 @@ def home():
             </form>
             <div id="message" class="mt-3"></div>
         </div>
-        <script>
-            function validateForm() {
-                // Perform validation here if necessary (currently enforced by required attributes)
-                return true; 
-            }
-
-            document.getElementById('storyForm').onsubmit = function() {
-                document.getElementById('message').innerText = 'Generating story...';
-            };
-        </script>
     </body>
     </html>
     """)
 
 @app.route('/generate_story', methods=['POST'])
 def generate_story():
-    # Get the input data from the request
     image_file = request.files.get('image')
     
     if not image_file:
         return jsonify({'error': 'No image file provided'}), 400
 
-    people_names = request.form.getlist('names')
+    # Split characters and their roles into a dictionary
+    character_input = request.form.get('character')
+    character_info = {}
+    
+    for entry in character_input.split(','):
+        try:
+            name, role = entry.split('-')
+            character_info[name.strip()] = role.strip()
+        except ValueError:
+            continue  # Ignore improperly formatted entries
+
     genre = request.form.get('genre', 'general')
     desired_length = int(request.form.get('length', 200))
 
     # Read the image data
     image_data = image_file.read()
-    # Generate the story based on the input data
-    story = image_story_generator.generate_story_from_image(image_data, people_names, genre, desired_length)
+    story = image_story_generator.generate_story_from_image(image_data, character_info, genre, desired_length)
 
     # Encode image for displaying in HTML
     encoded_image = base64.b64encode(image_data).decode("utf-8")
