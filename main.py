@@ -150,6 +150,7 @@ def home():
     </html>
     """)
 
+
 @app.route('/generate_story', methods=['POST'])
 def generate_story():
     # Get the input data from the request
