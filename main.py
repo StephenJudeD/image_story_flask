@@ -126,7 +126,7 @@ def home():
                 </div>
                 <div class="form-group">
                     <label for="names">Names (comma separated):</label>
-                    <input type="text" class="form-control" name="names" placeholder="Enter names, e.g. Alice, Bob" required>
+                    <input type="text" class="form-control" name="names" placeholder="Enter names, e.g. Stephen, Jude" required>
                 </div>
                 <div class="form-group">
                     <label for="genre">Genre:</label>
