@@ -5,7 +5,6 @@ import json
 import os
 from flask import Flask, request, jsonify, render_template_string
 
-
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -120,7 +119,7 @@ def home():
     <body>
         <div class="container mt-5">
             <h1 class="text-center">Image Story Generator</h1>
-            <form id="storyForm" action="/generate_story" method="POST" enctype="multipart/form-data">
+            <form id="storyForm" action="/generate_story" method="POST" enctype="multipart/form-data" onsubmit="return validateForm()">
                 <div class="form-group">
                     <label for="image">Upload Image:</label>
                     <input type="file" class="form-control" name="image" accept="image/*" required>
@@ -142,6 +141,11 @@ def home():
             <div id="message" class="mt-3"></div>
         </div>
         <script>
+            function validateForm() {
+                // Perform validation here if necessary (currently enforced by required attributes)
+                return true; 
+            }
+
             document.getElementById('storyForm').onsubmit = function() {
                 document.getElementById('message').innerText = 'Generating story...';
             };
@@ -149,7 +153,6 @@ def home():
     </body>
     </html>
     """)
-
 
 @app.route('/generate_story', methods=['POST'])
 def generate_story():
@@ -159,7 +162,6 @@ def generate_story():
     if not image_file:
         return jsonify({'error': 'No image file provided'}), 400
 
-    # Store the name and the genre
     people_names = request.form.getlist('names')
     genre = request.form.get('genre', 'general')
     desired_length = int(request.form.get('length', 200))
