@@ -161,7 +161,7 @@ def home():
                 <button type="submit" class="btn btn-primary btn-lg btn-block">Generate Story</button>
             </form>
             <p class="explanation">
-                This model utilizes advanced natural language processing techniques to generate stories based on the input image and user-defined parameters such as character names, genre, and story length.
+                This application utilises a single large language model (LLM) that leverages advanced natural language processing (NLP) techniques. It first interprets the uploaded image, analyzing key visual features and elements through image processing APIs. The model then generates an engaging narrative by combining these visual interpretations with user-defined parameters, including character names, genre, and desired story length. This integration of multimodal data allows for the creation of contextually relevant and imaginative stories, demonstrating the powerful capabilities of LLMs in bridging visual and textual information.
             </p>
         </div>
         <script>
