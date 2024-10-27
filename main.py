@@ -1,4 +1,4 @@
-import logging
+ import logging
 import base64
 import requests
 import json
@@ -137,11 +137,31 @@ def home():
                 font-family: 'Courier New', Courier, monospace; /* Typewriter font */
             }
             #loadingMessage {
-                display: none; /* Hidden by default */
+                display: none;
                 text-align: center;
                 font-size: 1.2rem;
                 margin-top: 20px;
-                color: #007bff; /* Bootstrap primary color */
+                color: #007bff;
+            }
+            .story-container {
+                display: flex;
+                align-items: flex-start;
+                margin-top: 20px;
+            }
+            .story-image {
+                max-width: 300px;
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                margin-right: 20px; /* Space between image and text */
+            }
+            .story-text {
+                max-width: 600px;
+                padding: 15px;
+                background-color: #f8f9fa;
+                border: 1px solid #888;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                font-family: 'Courier New', Courier, monospace; /* Typewriter font for story */
             }
         </style>
     </head>
@@ -169,7 +189,7 @@ def home():
                 <div id="loadingMessage">Generating story...</div>
             </form>
             <p class="explanation">
-                This application utilises a single large language model (LLM) that leverages advanced natural language processing (NLP) techniques. It first interprets the uploaded image, analysing key visual features and elements through image processing. The model then generates an engaging narrative by combining these visual interpretations with user-defined parameters, including character names, genre, and desired story length. This integration of multimodal data allows for the creation of contextually relevant and imaginative stories, demonstrating the powerful capabilities of LLMs in bridging visual and textual information.
+                This application utilizes a single large language model (LLM) that leverages advanced natural language processing (NLP) techniques. It first interprets the uploaded image, analyzing key visual features and elements through image processing APIs. The model then generates an engaging narrative by combining these visual interpretations with user-defined parameters, including character names, genre, and desired story length. This integration of multimodal data allows for the creation of contextually relevant and imaginative stories, demonstrating the powerful capabilities of LLMs in bridging visual and textual information.
             </p>
         </div>
         <script>
@@ -186,7 +206,7 @@ def home():
 def generate_story():
     # Get the input data from the request
     image_file = request.files.get('image')
-
+    
     if not image_file:
         return jsonify({'error': 'No image file provided'}), 400
 
@@ -218,7 +238,6 @@ def generate_story():
         <style>
             .story-container {{
                 display: flex;
-                justify-content: space-around;
                 align-items: flex-start;
                 margin-top: 20px;
             }}
@@ -226,6 +245,7 @@ def generate_story():
                 max-width: 300px;
                 border: 1px solid #ccc;
                 border-radius: 8px;
+                margin-right: 20px; /* Space between image and text */
             }}
             .story-text {{
                 max-width: 600px;
@@ -240,7 +260,6 @@ def generate_story():
     </head>
     <body>
         <div class="container mt-5">
-            <h1 class="text-center">Generated Story</h1>
             <div class="story-container">
                 <div class="story-image">
                     <img src="data:image/jpeg;base64,{encoded_image}" class="img-fluid" alt="Uploaded Image">
