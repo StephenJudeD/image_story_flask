@@ -30,15 +30,12 @@ class ImageStoryGenerator:
 
     def process_image(self, image_data):
         self.logger.info("Processing image attachment")
-
         try:
             encoded_image = base64.b64encode(image_data).decode("utf-8")
-
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {self.api_key}"
             }
-
             payload = {
                 "model": self.model,
                 "messages": [
@@ -52,22 +49,20 @@ class ImageStoryGenerator:
                 ],
                 "max_tokens": self.max_tokens
             }
-
             response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
             response.raise_for_status()
             result = response.json()
             descriptions = result['choices'][0]['message']['content'].split('\n')
             return descriptions
-
+        
         except Exception as e:
             self.logger.error(f"Error processing image: {e}")
             if 'response' in locals():
-                self.logger.error(f"Response: {response.text}")  # Log the full response if available
+                self.logger.error(f"Response: {response.text}")
             return []
 
     def generate_story_from_image(self, image_data, people_names, genre, desired_length):
         self.logger.info("Generating story from image")
-
         image_content = self.process_image(image_data)
         names_list = ", ".join(people_names)
 
@@ -77,7 +72,7 @@ class ImageStoryGenerator:
         Image Description:
         {image_content}
         """
-
+        
         try:
             response = requests.post(
                 "https://api.openai.com/v1/chat/completions",
@@ -99,7 +94,7 @@ class ImageStoryGenerator:
         except Exception as e:
             self.logger.error(f"Error generating story: {e}")
             if 'response' in locals():
-                self.logger.error(f"Response: {response.text}")  # Log the full response if available
+                self.logger.error(f"Response: {response.text}")
             return "Error generating story."
 
 app = Flask(__name__)
@@ -115,10 +110,37 @@ def home():
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
         <title>Image Story Generator</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f4;
+            }
+            .container {
+                max-width: 600px;
+                margin: 50px auto;
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            }
+            .title {
+                font-size: 2.5rem;
+                font-weight: bold;
+                color: #333;
+                text-align: center;
+                font-family: 'Courier New', Courier, monospace;
+            }
+            .explanation {
+                margin-top: 20px;
+                font-size: 1rem;
+                color: #555;
+                text-align: center;
+            }
+        </style>
     </head>
     <body>
         <div class="container mt-5">
-            <h1 class="text-center">Image Story Generator</h1>
+            <h1 class="title">Image Story Generator</h1>
             <form id="storyForm" action="/generate_story" method="POST" enctype="multipart/form-data" onsubmit="return validateForm()">
                 <div class="form-group">
                     <label for="image">Upload Image:</label>
@@ -138,14 +160,14 @@ def home():
                 </div>
                 <button type="submit" class="btn btn-primary btn-lg btn-block">Generate Story</button>
             </form>
-            <div id="message" class="mt-3"></div>
+            <p class="explanation">
+                This model utilizes advanced natural language processing techniques to generate stories based on the input image and user-defined parameters such as character names, genre, and story length.
+            </p>
         </div>
         <script>
             function validateForm() {
-                // Perform validation here if necessary (currently enforced by required attributes)
                 return true; 
             }
-
             document.getElementById('storyForm').onsubmit = function() {
                 document.getElementById('message').innerText = 'Generating story...';
             };
@@ -232,4 +254,3 @@ def generate_story():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-
