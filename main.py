@@ -18,7 +18,6 @@ class ImageStoryGenerator:
         self.max_tokens = 400
         self.cache = {}
 
-        # Prompt for the image processing API
         self.image_processing_prompt = """
         You are an expert in analyzing and describing visual imagery. Your task is to provide a detailed, rich, and descriptive analysis of the provided image that highlights its key features, elements, and any potential themes or moods it might evoke.
 
@@ -137,8 +136,12 @@ def home():
                 text-align: center;
                 font-family: 'Courier New', Courier, monospace; /* Typewriter font */
             }
-            .story-text {
-                font-family: 'Courier New', Courier, monospace; /* Typewriter font for story too */
+            #loadingMessage {
+                display: none; /* Hidden by default */
+                text-align: center;
+                font-size: 1.2rem;
+                margin-top: 20px;
+                color: #007bff; /* Bootstrap primary color */
             }
         </style>
     </head>
@@ -163,18 +166,17 @@ def home():
                     <input type="number" class="form-control" name="length" required min="10">
                 </div>
                 <button type="submit" class="btn btn-primary btn-lg btn-block">Generate Story</button>
+                <div id="loadingMessage">Generating story...</div>
             </form>
             <p class="explanation">
-                This application utilizes a single large language model (LLM) that leverages advanced natural language processing (NLP) techniques. It first interprets the uploaded image, analyzing key visual features and elements through image processing APIs. The model then generates an engaging narrative by combining these visual interpretations with user-defined parameters, including character names, genre, and desired story length. This integration of multimodal data allows for the creation of contextually relevant and imaginative stories, demonstrating the powerful capabilities of LLMs in bridging visual and textual information.
+                This application utilises a single large language model (LLM) that leverages advanced natural language processing (NLP) techniques. It first interprets the uploaded image, analysing key visual features and elements through image processing. The model then generates an engaging narrative by combining these visual interpretations with user-defined parameters, including character names, genre, and desired story length. This integration of multimodal data allows for the creation of contextually relevant and imaginative stories, demonstrating the powerful capabilities of LLMs in bridging visual and textual information.
             </p>
         </div>
         <script>
             function validateForm() {
+                document.getElementById('loadingMessage').style.display = 'block'; // Show loading message
                 return true; 
             }
-            document.getElementById('storyForm').onsubmit = function() {
-                document.getElementById('message').innerText = 'Generating story...';
-            };
         </script>
     </body>
     </html>
@@ -184,7 +186,7 @@ def home():
 def generate_story():
     # Get the input data from the request
     image_file = request.files.get('image')
-    
+
     if not image_file:
         return jsonify({'error': 'No image file provided'}), 400
 
