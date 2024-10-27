@@ -18,7 +18,6 @@ class ImageStoryGenerator:
         self.max_tokens = 400
         self.cache = {}
 
-        # Prompt for the image processing API
         self.image_processing_prompt = """
         You are an expert in analyzing and describing visual imagery. Your task is to provide a detailed, rich, and descriptive analysis of the provided image that highlights its key features, elements, and any potential themes or moods it might evoke.
 
@@ -143,6 +142,40 @@ def home():
                 margin-top: 20px;
                 color: #007bff; /* Bootstrap primary color */
             }
+            .story-container {
+                display: flex;
+                align-items: flex-start;
+                margin-top: 20px;
+                border: 1px solid #d1d1d1;
+                border-radius: 10px;
+                overflow: hidden;
+            }
+            .story-image {
+                flex: 0 0 40%; /* Fix width for the image */
+                border-right: 1px solid #d1d1d1; /* Add a border between image and text */
+                padding: 10px;
+            }
+            .story-image img {
+                width: 100%; 
+                border-radius: 10px 0 0 10px; /* Round the corners */
+            }
+            .story-text {
+                padding: 15px;
+                flex: 1; /* Fill the remaining space */
+                background-color: #f8f9fa;
+                font-family: 'Courier New', Courier, monospace; /* Typewriter font for story */
+                font-weight: bold; /* Make text bold */
+                font-size: 1.1rem; /* Increase font size for better readability */
+            }
+            h3 {
+                font-size: 1.5rem;
+                margin-bottom: 10px;
+                color: #333;
+            }
+            p {
+                margin: 0; /* Reset margin for p tag */
+                color: #555;
+            }
         </style>
     </head>
     <body>
@@ -224,7 +257,7 @@ def generate_story():
                 overflow: hidden;
             }}
             .story-image {{
-                flex: 0 0 40%;
+                flex: 0 0 40%; /* Fix width for the image */
                 border-right: 1px solid #d1d1d1; /* Add a border between image and text */
                 padding: 10px;
             }}
@@ -236,7 +269,9 @@ def generate_story():
                 padding: 15px;
                 flex: 1; /* Fill the remaining space */
                 background-color: #f8f9fa;
-                font-family: 'Courier New', Courier, monospace;
+                font-family: 'Courier New', Courier, monospace; /* Typewriter font for story */
+                font-weight: bold; /* Make text bold */
+                font-size: 1.2rem; /* Increase font size for better readability */
             }}
             h3 {{
                 font-size: 1.5rem;
@@ -244,7 +279,7 @@ def generate_story():
                 color: #333;
             }}
             p {{
-                font-size: 1rem;
+                margin: 0; /* Reset margin for p tag */
                 color: #555;
             }}
         </style>
