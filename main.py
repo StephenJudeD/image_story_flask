@@ -1,4 +1,4 @@
- import logging
+import logging
 import base64
 import requests
 import json
@@ -137,31 +137,11 @@ def home():
                 font-family: 'Courier New', Courier, monospace; /* Typewriter font */
             }
             #loadingMessage {
-                display: none;
+                display: none; /* Hidden by default */
                 text-align: center;
                 font-size: 1.2rem;
                 margin-top: 20px;
-                color: #007bff;
-            }
-            .story-container {
-                display: flex;
-                align-items: flex-start;
-                margin-top: 20px;
-            }
-            .story-image {
-                max-width: 300px;
-                border: 1px solid #ccc;
-                border-radius: 8px;
-                margin-right: 20px; /* Space between image and text */
-            }
-            .story-text {
-                max-width: 600px;
-                padding: 15px;
-                background-color: #f8f9fa;
-                border: 1px solid #888;
-                border-radius: 8px;
-                box-shadow: 0 0 10px rgba(0,0,0,0.1);
-                font-family: 'Courier New', Courier, monospace; /* Typewriter font for story */
+                color: #007bff; /* Bootstrap primary color */
             }
         </style>
     </head>
@@ -206,7 +186,7 @@ def home():
 def generate_story():
     # Get the input data from the request
     image_file = request.files.get('image')
-    
+
     if not image_file:
         return jsonify({'error': 'No image file provided'}), 400
 
@@ -234,10 +214,10 @@ def generate_story():
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-        <title>Generated Story</title>
         <style>
             .story-container {{
                 display: flex;
+                justify-content: space-around;
                 align-items: flex-start;
                 margin-top: 20px;
             }}
@@ -245,7 +225,6 @@ def generate_story():
                 max-width: 300px;
                 border: 1px solid #ccc;
                 border-radius: 8px;
-                margin-right: 20px; /* Space between image and text */
             }}
             .story-text {{
                 max-width: 600px;
@@ -260,6 +239,7 @@ def generate_story():
     </head>
     <body>
         <div class="container mt-5">
+            <h1 class="text-center">Generated Story</h1>
             <div class="story-container">
                 <div class="story-image">
                     <img src="data:image/jpeg;base64,{encoded_image}" class="img-fluid" alt="Uploaded Image">
