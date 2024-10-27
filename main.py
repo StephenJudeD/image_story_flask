@@ -18,6 +18,7 @@ class ImageStoryGenerator:
         self.max_tokens = 400
         self.cache = {}
 
+        # Prompt for the image processing API
         self.image_processing_prompt = """
         You are an expert in analyzing and describing visual imagery. Your task is to provide a detailed, rich, and descriptive analysis of the provided image that highlights its key features, elements, and any potential themes or moods it might evoke.
 
@@ -53,7 +54,6 @@ class ImageStoryGenerator:
             result = response.json()
             descriptions = result['choices'][0]['message']['content'].split('\n')
             return descriptions
-        
         except Exception as e:
             self.logger.error(f"Error processing image: {e}")
             if 'response' in locals():
@@ -101,91 +101,86 @@ image_story_generator = ImageStoryGenerator(logger)
 
 @app.route('/')
 def home():
-    # Include this in the render_template_string of the generate_story function
-return render_template_string(f"""
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-        body {{
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            padding: 20px;
-        }}
-        .container {{
-            max-width: 800px;
-            margin: 50px auto;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }}
-        .story-container {{
-            display: flex;
-            align-items: flex-start;
-            margin-top: 20px;
-            border: 1px solid #d1d1d1;
-            border-radius: 10px;
-            overflow: hidden;
-        }}
-        .story-image {{
-            flex: 0 0 40%; /* Fix width for the image */
-            border-right: 1px solid #d1d1d1; /* Add a border between image and text */
-            padding: 10px;
-        }}
-        .story-image img {{
-            width: 100%; 
-            border-radius: 10px 0 0 10px; /* Round the corners */
-        }}
-        .story-text {{
-            padding: 15px;
-            flex: 1; /* Fill the remaining space */
-            background-color: #f8f9fa;
-            font-family: 'Courier New', Courier, monospace;
-        }}
-        h3 {{
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-            color: #333;
-        }}
-        p {{
-            font-size: 1rem;
-            color: #555;
-        }}
-        .btn-primary {{
-            background-color: #007bff; /* Primary color */
-            border: none;
-            border-radius: 5px;
-            padding: 10px 20px;
-            font-size: 1rem;
-        }}
-        .btn-primary:hover {{
-            background-color: #0056b3; /* Darker on hover */
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }}
-    </style>
-</head>
-<body>
-    <div class="container mt-5">
-        <div class="story-container">
-            <div class="story-image">
-                <img src="data:image/jpeg;base64,{encoded_image}" alt="Uploaded Image">
-            </div>
-            <div class="story-text">
-                <h3>Your Story:</h3>
-                <p>{story}</p>
-            </div>
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+        <title>Image Story Generator</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f4;
+            }
+            .container {
+                max-width: 600px;
+                margin: 50px auto;
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            }
+            .title {
+                font-size: 2.5rem;
+                font-weight: bold;
+                color: #333;
+                text-align: center;
+                font-family: 'Courier New', Courier, monospace;
+            }
+            .explanation {
+                margin-top: 20px;
+                font-size: 1rem;
+                color: #555;
+                text-align: center;
+                font-family: 'Courier New', Courier, monospace; /* Typewriter font */
+            }
+            #loadingMessage {
+                display: none; /* Hidden by default */
+                text-align: center;
+                font-size: 1.2rem;
+                margin-top: 20px;
+                color: #007bff; /* Bootstrap primary color */
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container mt-5">
+            <h1 class="title">Image Story Generator</h1>
+            <form id="storyForm" action="/generate_story" method="POST" enctype="multipart/form-data" onsubmit="return validateForm()">
+                <div class="form-group">
+                    <label for="image">Upload Image:</label>
+                    <input type="file" class="form-control" name="image" accept="image/*" required>
+                </div>
+                <div class="form-group">
+                    <label for="names">Names (comma separated):</label>
+                    <input type="text" class="form-control" name="names" placeholder="Enter names, e.g. Stephen, Jude etc." required>
+                </div>
+                <div class="form-group">
+                    <label for="genre">Genre:</label>
+                    <input type="text" class="form-control" name="genre" placeholder="Enter genre or theme, set the scene!" required>
+                </div>
+                <div class="form-group">
+                    <label for="length">Desired Length (in words):</label>
+                    <input type="number" class="form-control" name="length" required min="10">
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg btn-block">Generate Story</button>
+                <div id="loadingMessage">Generating story...</div>
+            </form>
+            <p class="explanation">
+                This application utilizes a single large language model (LLM) that leverages advanced natural language processing (NLP) techniques. It first interprets the uploaded image, analyzing key visual features and elements through image processing APIs. The model then generates an engaging narrative by combining these visual interpretations with user-defined parameters, including character names, genre, and desired story length. This integration of multimodal data allows for the creation of contextually relevant and imaginative stories, demonstrating the powerful capabilities of LLMs in bridging visual and textual information.
+            </p>
         </div>
-        <div class="text-center mt-3">
-            <a class="btn btn-primary" href="/">Generate Another Story</a>
-        </div>
-    </div>
-</body>
-</html>
-""")
+        <script>
+            function validateForm() {
+                document.getElementById('loadingMessage').style.display = 'block'; // Show loading message
+                return true; 
+            }
+        </script>
+    </body>
+    </html>
+    """)
 
 @app.route('/generate_story', methods=['POST'])
 def generate_story():
@@ -222,23 +217,35 @@ def generate_story():
         <style>
             .story-container {{
                 display: flex;
-                justify-content: space-around;
                 align-items: flex-start;
                 margin-top: 20px;
+                border: 1px solid #d1d1d1;
+                border-radius: 10px;
+                overflow: hidden;
             }}
             .story-image {{
-                max-width: 300px;
-                border: 1px solid #ccc;
-                border-radius: 8px;
+                flex: 0 0 40%;
+                border-right: 1px solid #d1d1d1; /* Add a border between image and text */
+                padding: 10px;
+            }}
+            .story-image img {{
+                width: 100%; 
+                border-radius: 10px 0 0 10px; /* Round the corners */
             }}
             .story-text {{
-                max-width: 600px;
                 padding: 15px;
+                flex: 1; /* Fill the remaining space */
                 background-color: #f8f9fa;
-                border: 1px solid #888;
-                border-radius: 8px;
-                box-shadow: 0 0 10px rgba(0,0,0,0.1);
-                font-family: 'Courier New', Courier, monospace; /* Typewriter font for story */
+                font-family: 'Courier New', Courier, monospace;
+            }}
+            h3 {{
+                font-size: 1.5rem;
+                margin-bottom: 10px;
+                color: #333;
+            }}
+            p {{
+                font-size: 1rem;
+                color: #555;
             }}
         </style>
     </head>
@@ -246,10 +253,10 @@ def generate_story():
         <div class="container mt-5">
             <div class="story-container">
                 <div class="story-image">
-                    <img src="data:image/jpeg;base64,{encoded_image}" class="img-fluid" alt="Uploaded Image">
+                    <img src="data:image/jpeg;base64,{encoded_image}" alt="Uploaded Image">
                 </div>
                 <div class="story-text">
-                    <h3>Your Story:</h3>
+                    <p><strong>Your Story:</strong></p>
                     <p>{story}</p>
                 </div>
             </div>
