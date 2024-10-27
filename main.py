@@ -135,6 +135,10 @@ def home():
                 font-size: 1rem;
                 color: #555;
                 text-align: center;
+                font-family: 'Courier New', Courier, monospace; /* Typewriter font */
+            }
+            .story-text {
+                font-family: 'Courier New', Courier, monospace; /* Typewriter font for story too */
             }
         </style>
     </head>
@@ -161,7 +165,7 @@ def home():
                 <button type="submit" class="btn btn-primary btn-lg btn-block">Generate Story</button>
             </form>
             <p class="explanation">
-                This application utilises a single large language model (LLM) that leverages advanced natural language processing (NLP) techniques. It first interprets the uploaded image, analyzing key visual features and elements through image processing APIs. The model then generates an engaging narrative by combining these visual interpretations with user-defined parameters, including character names, genre, and desired story length. This integration of multimodal data allows for the creation of contextually relevant and imaginative stories, demonstrating the powerful capabilities of LLMs in bridging visual and textual information.
+                This application utilizes a single large language model (LLM) that leverages advanced natural language processing (NLP) techniques. It first interprets the uploaded image, analyzing key visual features and elements through image processing APIs. The model then generates an engaging narrative by combining these visual interpretations with user-defined parameters, including character names, genre, and desired story length. This integration of multimodal data allows for the creation of contextually relevant and imaginative stories, demonstrating the powerful capabilities of LLMs in bridging visual and textual information.
             </p>
         </div>
         <script>
@@ -228,6 +232,7 @@ def generate_story():
                 border: 1px solid #888;
                 border-radius: 8px;
                 box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                font-family: 'Courier New', Courier, monospace; /* Typewriter font for story */
             }}
         </style>
     </head>
