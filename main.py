@@ -239,7 +239,6 @@ def generate_story():
     </head>
     <body>
         <div class="container mt-5">
-            <h1 class="text-center">Generated Story</h1>
             <div class="story-container">
                 <div class="story-image">
                     <img src="data:image/jpeg;base64,{encoded_image}" class="img-fluid" alt="Uploaded Image">
