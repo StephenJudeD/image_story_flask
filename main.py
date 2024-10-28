@@ -108,6 +108,29 @@ def home():
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
         <title>Image Story Generator</title>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-8FBWK4X4M8"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-8FBWK4X4M8');
+            
+            // Function to track button click
+            function trackButtonClick() {
+                gtag('event', 'generate_story_click', {
+                    'event_category': 'button',
+                    'event_label': 'Generate Story Button'
+                });
+            }
+
+            // Function to track image upload
+            function trackImageUpload() {
+                gtag('event', 'image_upload', {
+                    'event_category': 'file',
+                    'event_label': 'Image Uploaded'
+                });
+            }
+        </script>
         <style>
             body {
                 font-family: Arial, sans-serif;
@@ -177,16 +200,6 @@ def home():
                 color: #555;
             }
         </style>
-        <!-- Google Analytics -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-8FBWK4X4M8"></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-
-            gtag('config', 'G-8FBWK4X4M8');
-        </script>
-        <!-- End Google Analytics -->
     </head>
     <body>
         <div class="container mt-5">
@@ -194,7 +207,7 @@ def home():
             <form id="storyForm" action="/generate_story" method="POST" enctype="multipart/form-data" onsubmit="return validateForm()">
                 <div class="form-group">
                     <label for="image">Upload Image:</label>
-                    <input type="file" class="form-control" name="image" accept="image/*" required>
+                    <input type="file" class="form-control" name="image" accept="image/*" required onchange="trackImageUpload()">
                 </div>
                 <div class="form-group">
                     <label for="names">Names (comma separated):</label>
@@ -208,7 +221,7 @@ def home():
                     <label for="length">Desired Length (in words):</label>
                     <input type="number" class="form-control" name="length" required min="10">
                 </div>
-                <button type="submit" class="btn btn-primary btn-lg btn-block">Generate Story</button>
+                <button type="submit" class="btn btn-primary btn-lg btn-block" onclick="trackButtonClick()">Generate Story</button>
                 <div id="loadingMessage">Generating story...</div>
             </form>
             <p class="explanation">
