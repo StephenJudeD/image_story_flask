@@ -211,7 +211,7 @@ def home():
                     <input type="file" class="form-control" name="image" accept="image/*" required onchange="trackImageUpload()">
                 </div>
                 <div class="form-group">
-                    <label for="names">Names (comma separated):</label>
+                    <label for="names">Peoples Names (comma separated from left to right):</label>
                     <input type="text" class="form-control" name="names" placeholder="Enter names, e.g. Stephen, Jude etc." required>
                 </div>
                 <div class="form-group">
