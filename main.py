@@ -25,6 +25,7 @@ class ImageStoryGenerator:
         - Review the image and identify the key visual elements and features (e.g., colors, shapes, textures, composition, etc.).
         - Describe the visual appearance of each person, including their clothing and any distinct characteristics.
         - Return the description of each person in a list format.
+        - Describe an object, where applicable, to enrich the story (e.g., if there is an object like a bottle of wine, hammock, landscape etc)
         """
 
     def process_image(self, image_data):
@@ -65,7 +66,7 @@ class ImageStoryGenerator:
         names_list = ", ".join(people_names)
 
         story_prompt = f"""
-        Based on the following image description and the provided character names: {names_list}, create a short story in the first person that is engaging and creative for a {genre} audience. The story should be no more than {desired_length} words.
+        Based on the following image description and the provided character names from left to right: {names_list}, create a short story that is engaging and creative for a {genre} audience, utilizing the image description to enliven and enrich, show a true understanding or the image itself in the context of the story. The story should be no more than {desired_length} words.
 
         Image Description:
         {image_content}
