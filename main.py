@@ -138,62 +138,283 @@ os.makedirs('static', exist_ok=True)
 
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Image Description Service</title>
+    <title>EyeSpeak - Visual Assistant</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #2196F3;
+            --text-color: #333;
+            --background: #f8f9fa;
+        }
+        
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
+            background-color: var(--background);
+            color: var(--text-color);
         }
+        
+        h1 {
+            font-size: 2.5em;
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+        }
+        
         .container {
-            background-color: #f5f5f5;
-            padding: 20px;
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-        .description {
-            margin-top: 20px;
-            padding: 10px;
             background-color: white;
-            border-radius: 5px;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
         }
-        .or-divider {
+        
+        .input-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            font-size: 1.2em;
+            display: block;
+            margin-bottom: 10px;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1em;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .file-upload {
+            text-align: center;
+            padding: 20px;
+            border: 3px dashed #ddd;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        
+        .submit-btn {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .submit-btn:hover {
+            background-color: #1976D2;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            margin: 20px 0;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .loading {
+            display: none;
             text-align: center;
             margin: 20px 0;
-            font-weight: bold;
+        }
+        
+        .loading-bar {
+            height: 4px;
+            background-color: #ddd;
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .loading-bar::after {
+            content: '';
+            position: absolute;
+            left: -50%;
+            height: 100%;
+            width: 50%;
+            background-color: var(--primary-color);
+            animation: loading 1s linear infinite;
+        }
+        
+        .description-container {
+            font-size: 1.2em;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .audio-player {
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        @keyframes loading {
+            0% { left: -50% }
+            100% { left: 100% }
+        }
+        
+        /* Accessibility Enhancements */
+        *:focus {
+            outline: 3px solid var(--primary-color);
+            outline-offset: 2px;
+        }
+        
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0,0,0,0);
+            border: 0;
         }
     </style>
 </head>
 <body>
-    <h1>Image Description Service</h1>
+    <h1><i class="fas fa-eye"></i> EyeSpeak - Visual Assistant</h1>
+    
     <div class="container">
-        <form method="POST" enctype="multipart/form-data">
-            <label for="image_url">Enter Image URL:</label><br>
-            <input type="text" id="image_url" name="image_url" style="width: 100%;"><br><br>
+        <form method="POST" enctype="multipart/form-data" id="descriptionForm">
+            <div class="input-group">
+                <label for="image_url">
+                    <i class="fas fa-link"></i> Enter Image URL:
+                </label>
+                <input type="text" id="image_url" name="image_url" 
+                       placeholder="https://example.com/image.jpg"
+                       aria-label="Enter image URL">
+            </div>
             
-            <div class="or-divider">OR</div>
+            <div class="input-group">
+                <label for="image_file">
+                    <i class="fas fa-upload"></i> Upload Image
+                </label>
+                <div class="file-upload" id="dropZone">
+                    <input type="file" id="image_file" name="image_file" 
+                           accept=".jpg,.jpeg,.png,.gif" 
+                           style="display: none;">
+                    <i class="fas fa-cloud-upload-alt fa-3x"></i>
+                    <p>Click or drag image here</p>
+                </div>
+            </div>
+
+            <img id="imagePreview" class="preview-image" alt="Image preview">
             
-            <label for="image_file">Upload Image File:</label><br>
-            <input type="file" id="image_file" name="image_file" accept=".jpg,.jpeg,.png,.gif"><br><br>
-            
-            <input type="submit" value="Describe Image">
+            <button type="submit" class="submit-btn">
+                <i class="fas fa-magic"></i> Describe Image
+            </button>
         </form>
+        
+        <div class="loading" id="loadingIndicator">
+            <p><i class="fas fa-spinner fa-spin"></i> Processing image...</p>
+            <div class="loading-bar"></div>
+        </div>
     </div>
+
     {% if description %}
     <div class="container">
-        <h2>Description:</h2>
-        <div class="description">
+        <h2><i class="fas fa-comment-alt"></i> Description:</h2>
+        <div class="description-container">
             {{ description }}
         </div>
-        <audio controls style="margin-top: 20px;">
-            <source src="{{ url_for('static', filename='description.mp3') }}" type="audio/mpeg">
-            Your browser does not support the audio element.
-        </audio>
+        <div class="audio-player">
+            <h3><i class="fas fa-volume-up"></i> Listen to Description:</h3>
+            <audio controls style="width: 100%;">
+                <source src="{{ url_for('static', filename='description.mp3') }}" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
+        </div>
     </div>
     {% endif %}
+
+    <script>
+        // Image preview functionality
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('imagePreview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // URL preview functionality
+        document.getElementById('image_url').addEventListener('change', function() {
+            const preview = document.getElementById('imagePreview');
+            preview.src = this.value;
+            preview.style.display = 'block';
+        });
+
+        // Form submission handling
+        document.getElementById('descriptionForm').addEventListener('submit', function() {
+            document.getElementById('loadingIndicator').style.display = 'block';
+        });
+
+        // File input handling
+        document.getElementById('image_file').addEventListener('change', handleFileSelect);
+        
+        // Drag and drop functionality
+        const dropZone = document.getElementById('dropZone');
+        
+        dropZone.addEventListener('click', () => {
+            document.getElementById('image_file').click();
+        });
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            dropZone.classList.add('highlight');
+        }
+
+        function unhighlight(e) {
+            dropZone.classList.remove('highlight');
+        }
+
+        dropZone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            document.getElementById('image_file').files = files;
+            handleFileSelect({target: {files: files}});
+        }
+    </script>
 </body>
 </html>
 '''
