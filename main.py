@@ -1,332 +1,225 @@
 import logging
 import base64
 import requests
-import json
 import os
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, render_template_string, url_for
+from werkzeug.utils import secure_filename
+import pyttsx3
+from gtts import gTTS
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class ImageStoryGenerator:
+# Constants for file upload
+UPLOAD_FOLDER = 'static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+class AccessibleImageDescriber:
     def __init__(self, logger):
         self.logger = logger
         self.api_key = os.getenv('OPENAI_API_KEY')
         self.model = "gpt-4o-mini"
-        self.temperature = 0.5
-        self.max_tokens = 400
-        self.cache = {}
 
-        self.image_processing_prompt = """
-        You are an expert in analyzing and describing visual imagery. Your task is to provide a detailed, rich, and descriptive analysis of the provided image that highlights its key features, elements, and any potential themes or moods it might evoke.
-
-        Instructions:
-        - Review the image and identify the key visual elements and features (e.g., colors, shapes, textures, composition, etc.).
-        - Describe the visual appearance of each person, including their clothing and any distinct characteristics.
-        - Return the description of each person in a list format.
-        - Describe an object, where applicable, to enrich the story (e.g., if there is an object like a bottle of wine, hammock, landscape etc)
-        """
-
-    def process_image(self, image_data):
-        self.logger.info("Processing image attachment")
+    def encode_image_url(self, image_url):
         try:
-            encoded_image = base64.b64encode(image_data).decode("utf-8")
+            response = requests.get(image_url)
+            return base64.b64encode(response.content).decode('utf-8')
+        except Exception as e:
+            self.logger.error(f"Error encoding image URL: {str(e)}")
+            return None
+
+    def encode_image_file(self, image_path):
+        try:
+            with open(image_path, 'rb') as image_file:
+                return base64.b64encode(image_file.read()).decode('utf-8')
+        except Exception as e:
+            self.logger.error(f"Error encoding image file: {str(e)}")
+            return None
+
+    def describe_image(self, image_input, is_url=True):
+        try:
+            # Encode the image
+            if is_url:
+                base64_image = self.encode_image_url(image_input)
+            else:
+                base64_image = self.encode_image_file(image_input)
+
+            if not base64_image:
+                return "Error: Could not encode image"
+
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {self.api_key}"
             }
-            payload = {
+
+            # First prompt - Get initial description
+            initial_payload = {
                 "model": self.model,
                 "messages": [
                     {
                         "role": "user",
                         "content": [
-                            {"type": "text", "text": self.image_processing_prompt},
-                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encoded_image}"}}
+                            {
+                                "type": "text",
+                                "text": "What do you see in this image? Provide a detailed description."
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{base64_image}"
+                                }
+                            }
                         ]
                     }
                 ],
-                "max_tokens": self.max_tokens
+                "max_tokens": 300
             }
-            response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-            response.raise_for_status()
-            result = response.json()
-            descriptions = result['choices'][0]['message']['content'].split('\n')
-            return descriptions
-        except Exception as e:
-            self.logger.error(f"Error processing image: {e}")
-            if 'response' in locals():
-                self.logger.error(f"Response: {response.text}")
-            return []
 
-    def generate_story_from_image(self, image_data, people_names, genre, desired_length):
-        self.logger.info("Generating story from image")
-        image_content = self.process_image(image_data)
-        names_list = ", ".join(people_names)
-
-        story_prompt = f"""
-        Based on the following image description and the provided character names from left to right: {names_list}, create a short story that is engaging and creative for a {genre} audience, utilizing the image description to enliven and enrich, show a true understanding or the image itself in the context of the story. The story should be no more than {desired_length} words.
-
-        Image Description:
-        {image_content}
-        """
-        
-        try:
-            response = requests.post(
+            initial_response = requests.post(
                 "https://api.openai.com/v1/chat/completions",
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {self.api_key}"
-                },
-                json={
-                    "model": self.model,
-                    "messages": [{"role": "user", "content": story_prompt}],
-                    "max_tokens": self.max_tokens,
-                    "temperature": self.temperature
-                }
+                headers=headers,
+                json=initial_payload
             )
-            response.raise_for_status()
-            result = response.json()
-            story = result['choices'][0]['message']['content']
-            return story
+
+            if initial_response.status_code != 200:
+                self.logger.error(f"API Error: {initial_response.status_code} - {initial_response.text}")
+                return f"Error: API returned status code {initial_response.status_code}"
+
+            initial_description = initial_response.json()['choices'][0]['message']['content']
+
+            # Second prompt - Enhance for visually impaired users
+            enhance_payload = {
+                "model": self.model,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": f"Please enhance this description for a visually impaired person, making it more detailed and descriptive, focusing on spatial relationships and important details: {initial_description}"
+                    }
+                ],
+                "max_tokens": 300
+            }
+
+            enhance_response = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers=headers,
+                json=enhance_payload
+            )
+
+            if enhance_response.status_code == 200:
+                return enhance_response.json()['choices'][0]['message']['content']
+            else:
+                self.logger.error(f"API Error: {enhance_response.status_code} - {enhance_response.text}")
+                return initial_description
+
         except Exception as e:
-            self.logger.error(f"Error generating story: {e}")
-            if 'response' in locals():
-                self.logger.error(f"Response: {response.text}")
-            return "Error generating story."
+            self.logger.error(f"Error describing image: {str(e)}")
+            return f"Error: {str(e)}"
+
+    def text_to_speech(self, text, output_file="static/description.mp3"):
+        try:
+            tts = gTTS(text=text, lang='en')
+            tts.save(output_file)
+            return True
+        except Exception as e:
+            self.logger.error(f"Error converting text to speech: {str(e)}")
+            return False
 
 app = Flask(__name__)
-image_story_generator = ImageStoryGenerator(logger)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+describer = AccessibleImageDescriber(logger)
 
-@app.route('/')
-def home():
-    return render_template_string("""
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-        <title>Image Story Generator</title>
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-8FBWK4X4M8"></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-8FBWK4X4M8');
+# Ensure upload folders exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs('static', exist_ok=True)
+
+HTML_TEMPLATE = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Description Service</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .description {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 5px;
+        }
+        .or-divider {
+            text-align: center;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Image Description Service</h1>
+    <div class="container">
+        <form method="POST" enctype="multipart/form-data">
+            <label for="image_url">Enter Image URL:</label><br>
+            <input type="text" id="image_url" name="image_url" style="width: 100%;"><br><br>
             
-            // Function to track button click
-            function trackButtonClick() {
-                gtag('event', 'generate_story_click', {
-                    'event_category': 'button',
-                    'event_label': 'Generate Story Button'
-                });
-            }
-
-            // Function to track image upload
-            function trackImageUpload() {
-                gtag('event', 'image_upload', {
-                    'event_category': 'file',
-                    'event_label': 'Image Uploaded'
-                });
-            }
-        </script>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                background-color: #f4f4f4;
-            }
-            .container {
-                max-width: 600px;
-                margin: 50px auto;
-                background: white;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            }
-            .title {
-                font-size: 2.5rem;
-                font-weight: bold;
-                color: #333;
-                text-align: center;
-                font-family: 'Courier New', Courier, monospace;
-            }
-            .explanation {
-                margin-top: 20px;
-                font-size: 1rem;
-                color: #555;
-                text-align: center;
-                font-family: 'Courier New', Courier, monospace; /* Typewriter font */
-            }
-            #loadingMessage {
-                display: none; /* Hidden by default */
-                text-align: center;
-                font-size: 1.2rem;
-                margin-top: 20px;
-                color: #007bff; /* Bootstrap primary color */
-            }
-            .story-container {
-                display: flex;
-                align-items: flex-start;
-                margin-top: 20px;
-                border: 1px solid #d1d1d1;
-                border-radius: 10px;
-                overflow: hidden;
-            }
-            .story-image {
-                flex: 0 0 40%; /* Fix width for the image */
-                border-right: 1px solid #d1d1d1; /* Add a border between image and text */
-                padding: 10px;
-            }
-            .story-image img {
-                width: 100%; 
-                border-radius: 10px 0 0 10px; /* Round the corners */
-            }
-            .story-text {
-                padding: 15px;
-                flex: 1; /* Fill the remaining space */
-                background-color: #f8f9fa;
-                font-family: 'Courier New', Courier, monospace; /* Typewriter font for story */
-                font-weight: bold; /* Make text bold */
-                font-size: 1.1rem; /* Increase font size for better readability */
-            }
-            h3 {
-                font-size: 1.5rem;
-                margin-bottom: 10px;
-                color: #333;
-            }
-            p {
-                margin: 0; /* Reset margin for p tag */
-                color: #555;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container mt-5">
-            <h1 class="title">Image Story Generator</h1>
-            <form id="storyForm" action="/generate_story" method="POST" enctype="multipart/form-data" onsubmit="return validateForm()">
-                <div class="form-group">
-                    <label for="image">Upload Image:</label>
-                    <input type="file" class="form-control" name="image" accept="image/*" required onchange="trackImageUpload()">
-                </div>
-                <div class="form-group">
-                    <label for="names">Peoples Names (comma separated from left to right):</label>
-                    <input type="text" class="form-control" name="names" placeholder="Enter names, e.g. Stephen, Jude etc." required>
-                </div>
-                <div class="form-group">
-                    <label for="genre">Genre:</label>
-                    <input type="text" class="form-control" name="genre" placeholder="Enter genre or theme, set the scene!" required>
-                </div>
-                <div class="form-group">
-                    <label for="length">Desired Length (in words):</label>
-                    <input type="number" class="form-control" name="length" required min="10">
-                </div>
-                <button type="submit" class="btn btn-primary btn-lg btn-block" onclick="trackButtonClick()">Generate Story</button>
-                <div id="loadingMessage">Generating story...</div>
-            </form>
-            <p class="explanation">
-                This application utilizes a single large language model (LLM) that leverages advanced natural language processing (NLP) techniques. It first interprets the uploaded image, analyzing key visual features and elements through image processing APIs. The model then generates an engaging narrative by combining these visual interpretations with user-defined parameters, including character names, genre, and desired story length. This integration of multimodal data allows for the creation of contextually relevant and imaginative stories, demonstrating the powerful capabilities of LLMs in bridging visual and textual information.
-            </p>
+            <div class="or-divider">OR</div>
+            
+            <label for="image_file">Upload Image File:</label><br>
+            <input type="file" id="image_file" name="image_file" accept=".jpg,.jpeg,.png,.gif"><br><br>
+            
+            <input type="submit" value="Describe Image">
+        </form>
+    </div>
+    {% if description %}
+    <div class="container">
+        <h2>Description:</h2>
+        <div class="description">
+            {{ description }}
         </div>
-        <script>
-            function validateForm() {
-                document.getElementById('loadingMessage').style.display = 'block'; // Show loading message
-                return true; 
-            }
-        </script>
-    </body>
-    </html>
-    """)
+        <audio controls style="margin-top: 20px;">
+            <source src="{{ url_for('static', filename='description.mp3') }}" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
+    </div>
+    {% endif %}
+</body>
+</html>
+'''
 
-@app.route('/generate_story', methods=['POST'])
-def generate_story():
-    # Get the input data from the request
-    image_file = request.files.get('image')
-
-    if not image_file:
-        return jsonify({'error': 'No image file provided'}), 400
-
-    people_names = request.form.getlist('names')
-    genre = request.form.get('genre', 'general')
-    desired_length = int(request.form.get('length', 200))
-
-    # Read the image data
-    image_data = image_file.read()
-    # Generate the story based on the input data
-    story = image_story_generator.generate_story_from_image(image_data, people_names, genre, desired_length)
-
-    # Encode image for displaying in HTML
-    encoded_image = base64.b64encode(image_data).decode("utf-8")
-
-    # Check if the story was generated successfully or an error occurred
-    if "Error generating story" in story:
-        return jsonify({'error': story}), 500
-
-    # Create an HTML page displaying the image and the story
-    return render_template_string(f"""
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-        <style>
-            .story-container {{
-                display: flex;
-                align-items: flex-start;
-                margin-top: 20px;
-                border: 1px solid #d1d1d1;
-                border-radius: 10px;
-                overflow: hidden;
-            }}
-            .story-image {{
-                flex: 0 0 40%; /* Fix width for the image */
-                border-right: 1px solid #d1d1d1; /* Add a border between image and text */
-                padding: 10px;
-            }}
-            .story-image img {{
-                width: 100%; 
-                border-radius: 10px 0 0 10px; /* Round the corners */
-            }}
-            .story-text {{
-                padding: 15px;
-                flex: 1; /* Fill the remaining space */
-                background-color: #f8f9fa;
-                font-family: 'Courier New', Courier, monospace; /* Typewriter font for story */
-                font-weight: bold; /* Make text bold */
-                font-size: 1.2rem; /* Increase font size for better readability */
-            }}
-            h3 {{
-                font-size: 1.5rem;
-                margin-bottom: 10px;
-                color: #333;
-            }}
-            p {{
-                margin: 0; /* Reset margin for p tag */
-                color: #555;
-            }}
-        </style>
-    </head>
-    <body>
-        <div class="container mt-5">
-            <div class="story-container">
-                <div class="story-image">
-                    <img src="data:image/jpeg;base64,{encoded_image}" alt="Uploaded Image">
-                </div>
-                <div class="story-text">
-                    <p><strong>Your Story:</strong></p>
-                    <p>{story}</p>
-                </div>
-            </div>
-            <div class="text-center mt-3">
-                <a class="btn btn-primary" href="/">Generate Another Story</a>
-            </div>
-        </div>
-    </body>
-    </html>
-    """)
+@app.route('/', methods=['GET', 'POST'])
+def home():
+    description = None
+    if request.method == 'POST':
+        # Check if the post request has the file part
+        if 'image_file' in request.files and request.files['image_file'].filename != '':
+            file = request.files['image_file']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                description = describer.describe_image(filepath, is_url=False)
+                # Clean up the uploaded file
+                os.remove(filepath)
+        elif request.form['image_url']:
+            image_url = request.form['image_url']
+            description = describer.describe_image(image_url, is_url=True)
+        
+        if description and not description.startswith('Error'):
+            describer.text_to_speech(description)
+    
+    return render_template_string(HTML_TEMPLATE, description=description)
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(debug=True)
