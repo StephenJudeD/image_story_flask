@@ -65,7 +65,7 @@ class AccessibleImageDescriber:
                         "content": [
                             {
                                 "type": "text",
-                                "text": "What do you see in this image? Provide a detailed description."
+                                "text": "Provide a clear, specific description of this image. Include: 1. Main subjects/objects 2. Exact locations (top, bottom, left, right) 3. Colors and patterns 4. Any text present 5. Actions or movements"
                             },
                             {
                                 "type": "image_url",
@@ -97,7 +97,7 @@ class AccessibleImageDescriber:
                 "messages": [
                     {
                         "role": "user",
-                        "content": f"Please enhance this description for a visually impaired person, making it more detailed and descriptive, focusing on spatial relationships and important details: {initial_description}"
+                        "content": f"Create an image description for an app designed for visually impaired users. Your task is to provide a clear and factual description that can be easily visualized. Begin with the main subject, then detail the surrounding environment, colors, textures, and any important features. Ensure that language is straightforward and avoids subjective terms. For example, 'The main subject is a [[TYPE OF OBJECT]], which is located in a [[DESCRIPTION OF ENVIRONMENT]]. The color of the object is [[COLOR]], and it has a [[TEXTURE]] texture. Surrounding the object are [[OTHER ELEMENTS]], which contribute to the overall scene.' Focus on creating a vivid mental picture that enhances accessibility for users with visual impairments.: {initial_description}"
                     }
                 ],
                 "max_tokens": 300
