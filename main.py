@@ -65,7 +65,7 @@ class AccessibleImageDescriber:
                         "content": [
                             {
                                 "type": "text",
-                                "text": "Provide a clear, specific description of this image. Include: 1. Main subjects/objects 2. Exact locations (top, bottom, left, right) 3. Colors and patterns 4. Any text present 5. Actions or movements"
+                                "text": "Provide a clear, specific description of this image. Include: 1. Main subjects/objects 2. Exact locations (top, bottom, left, right) 3. Colors and patterns 4. Any text present 5. Actions or movements 6. Textures. 7. Ambience. 8.Human feelings"
                             },
                             {
                                 "type": "image_url",
