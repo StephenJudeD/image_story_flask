@@ -65,7 +65,7 @@ class AccessibleImageDescriber:
                         "content": [
                             {
                                 "type": "text",
-                                "text": "Provide a clear, specific description of this image. Include: 1. Main subjects/objects 2. Exact locations (top, bottom, left, right) 3. Colors and patterns 4. Any text present 5. Actions or movements 6. Textures. 7. Ambience. 8.Human feelings"
+                                "text": "Provide a detailed description of this image for visually impaired users. Start with the main subject(s) or object(s), then describe their location from left to right, top to bottom. Include:\n1. **Main subjects/objects**: Describe what they are and their actions if any.\n2. **Locations**: Specify where things are in relation to each other.\n3. **Colors and Patterns**: Describe colors and any visible patterns or textures.\n4. **Text**: If there is any text in the image, read it out or describe its appearance.\n5. **Environment/Ambience**: Describe the setting or scene, including lighting, weather, or any notable background elements.\n6. **Human Feelings**: If applicable, mention any emotions conveyed by human subjects.\n\nPlease avoid metaphors, idioms, or subjective terms that might not be clear to someone without visual experience."
                             },
                             {
                                 "type": "image_url",
@@ -97,7 +97,7 @@ class AccessibleImageDescriber:
                 "messages": [
                     {
                         "role": "user",
-                        "content": f"Create an image description for an app designed for visually impaired users. Your task is to provide a clear and factual description that can be easily visualized. Begin with the main subject, then detail the surrounding environment, colors, textures, and any important features. Ensure that language is straightforward and avoids subjective terms. For example, 'The main subject is a [[TYPE OF OBJECT]], which is located in a [[DESCRIPTION OF ENVIRONMENT]]. The color of the object is [[COLOR]], and it has a [[TEXTURE]] texture. Surrounding the object are [[OTHER ELEMENTS]], which contribute to the overall scene.' Focus on creating a vivid mental picture that enhances accessibility for users with visual impairments.: {initial_description}"
+                        "content": f"Using the following description, craft an image description optimized for an app used by visually impaired individuals. Ensure the description:\n- Starts with the main subject, describing what it is, its location, and what it's doing.\n- Moves from left to right, top to bottom, detailing the surrounding elements.\n- Describes colors, textures, and any notable patterns in a way that can be understood through touch or other senses.\n- Avoids subjective terms or metaphors; use straightforward, factual language.\n- Reads out any visible text or describes its appearance.\n- Mentions any actions, movements, or emotions in a clear manner.\n\nHere's a template:\n'The main subject is a [[TYPE OF OBJECT]], located in the [[POSITION]]. It is [[COLOR]], with a [[TEXTURE]] texture. To its left, there is [[DESCRIPTION OF LEFT ELEMENTS]]. To its right, [[DESCRIPTION OF RIGHT ELEMENTS]]. Above, [[TOP ELEMENTS]]. Below, [[BOTTOM ELEMENTS]]. The ambient environment is [[AMBIENCE]].'\n\nDescription to enhance: {initial_description}"
                     }
                 ],
                 "max_tokens": 300
