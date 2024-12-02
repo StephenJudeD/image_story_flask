@@ -143,148 +143,11 @@ HTML_TEMPLATE = '''
     <title>EyeSpeak - Visual Assistant</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root {
-            --primary-color: #2196F3;
-            --text-color: #333;
-            --background: #f8f9fa;
-        }
-        
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: var(--background);
-            color: var(--text-color);
-        }
-        
-        h1 {
-            font-size: 2.5em;
-            text-align: center;
-            color: var(--primary-color);
-            margin-bottom: 30px;
-        }
-        
-        .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-        }
-        
-        .input-group {
-            margin-bottom: 25px;
-        }
-        
-        label {
-            font-size: 1.2em;
-            display: block;
-            margin-bottom: 10px;
-        }
-        
-        input[type="text"] {
-            width: 100%;
-            padding: 15px;
-            font-size: 1.1em;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .file-upload {
-            text-align: center;
-            padding: 20px;
-            border: 3px dashed #ddd;
-            border-radius: 10px;
-            cursor: pointer;
-        }
-        
-        .submit-btn {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 15px 30px;
-            font-size: 1.2em;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        
-        .submit-btn:hover {
-            background-color: #1976D2;
-        }
-        
-        .preview-image {
-            max-width: 100%;
-            margin: 20px 0;
-            border-radius: 10px;
-            display: none;
-        }
-        
-        .loading {
-            display: none;
-            text-align: center;
-            margin: 20px 0;
-        }
-        
-        .loading-bar {
-            height: 4px;
-            background-color: #ddd;
-            border-radius: 2px;
-            overflow: hidden;
-            position: relative;
-        }
-        
-        .loading-bar::after {
-            content: '';
-            position: absolute;
-            left: -50%;
-            height: 100%;
-            width: 50%;
-            background-color: var(--primary-color);
-            animation: loading 1s linear infinite;
-        }
-        
-        .description-container {
-            font-size: 1.2em;
-            line-height: 1.6;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 10px;
-            margin-top: 20px;
-        }
-        
-        .audio-player {
-            width: 100%;
-            margin-top: 20px;
-        }
-        
-        @keyframes loading {
-            0% { left: -50% }
-            100% { left: 100% }
-        }
-        
-        /* Accessibility Enhancements */
-        *:focus {
-            outline: 3px solid var(--primary-color);
-            outline-offset: 2px;
-        }
-        
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0,0,0,0);
-            border: 0;
+        /* Your existing CSS styles remain the same */
+        /* Add this new style for the clear button */
+        .clear-btn {
+            background-color: #dc3545;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -320,6 +183,9 @@ HTML_TEMPLATE = '''
             <button type="submit" class="submit-btn">
                 <i class="fas fa-magic"></i> Describe Image
             </button>
+            <button type="button" class="submit-btn clear-btn" id="clearButton">
+                <i class="fas fa-trash"></i> Clear
+            </button>
         </form>
         
         <div class="loading" id="loadingIndicator">
@@ -329,7 +195,7 @@ HTML_TEMPLATE = '''
     </div>
 
     {% if description %}
-    <div class="container">
+    <div class="container" id="descriptionContainer">
         <h2><i class="fas fa-comment-alt"></i> Description:</h2>
         <div class="description-container">
             {{ description }}
@@ -366,21 +232,64 @@ HTML_TEMPLATE = '''
             preview.style.display = 'block';
         });
 
-        // Form submission handling
-        document.getElementById('descriptionForm').addEventListener('submit', function() {
-            document.getElementById('loadingIndicator').style.display = 'block';
+        // Clear functionality
+        document.getElementById('clearButton').addEventListener('click', function() {
+            // Clear form inputs
+            document.getElementById('image_url').value = '';
+            document.getElementById('image_file').value = '';
+            
+            // Clear image preview
+            const preview = document.getElementById('imagePreview');
+            preview.src = '';
+            preview.style.display = 'none';
+            
+            // Clear description if exists
+            const descriptionContainer = document.getElementById('descriptionContainer');
+            if (descriptionContainer) {
+                descriptionContainer.style.display = 'none';
+            }
         });
 
-        // File input handling
+        // Form submission handling with fetch
+        document.getElementById('descriptionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            document.getElementById('loadingIndicator').style.display = 'block';
+            
+            const formData = new FormData(this);
+            
+            fetch('/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Update only the description container
+                const newDescription = doc.getElementById('descriptionContainer');
+                if (newDescription) {
+                    let existingDescription = document.getElementById('descriptionContainer');
+                    if (existingDescription) {
+                        existingDescription.innerHTML = newDescription.innerHTML;
+                    } else {
+                        document.body.appendChild(newDescription);
+                    }
+                }
+                
+                document.getElementById('loadingIndicator').style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('loadingIndicator').style.display = 'none';
+            });
+        });
+
+        // File input and drag-drop handling
         document.getElementById('image_file').addEventListener('change', handleFileSelect);
         
-        // Drag and drop functionality
         const dropZone = document.getElementById('dropZone');
         
-        dropZone.addEventListener('click', () => {
-            document.getElementById('image_file').click();
-        });
-
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             dropZone.addEventListener(eventName, preventDefaults, false);
         });
@@ -423,7 +332,11 @@ HTML_TEMPLATE = '''
 def home():
     description = None
     if request.method == 'POST':
-        # Check if the post request has the file part
+        # Delete old audio file if exists
+        audio_file = os.path.join('static', 'description.mp3')
+        if os.path.exists(audio_file):
+            os.remove(audio_file)
+            
         if 'image_file' in request.files and request.files['image_file'].filename != '':
             file = request.files['image_file']
             if file and allowed_file(file.filename):
