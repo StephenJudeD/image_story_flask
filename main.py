@@ -184,7 +184,7 @@ HTML_TEMPLATE = '''
             margin-bottom: 10px;
         }
         
-        input[type="text"] {
+        input[type="text"], input[type="range"] {
             width: 100%;
             padding: 15px;
             font-size: 1.1em;
@@ -266,6 +266,11 @@ HTML_TEMPLATE = '''
             margin-top: 20px;
         }
         
+        .zoom-controls, .text-size-controls {
+            margin-top: 20px;
+            display: none;
+        }
+        
         @keyframes loading {
             0% { left: -50% }
             100% { left: 100% }
@@ -331,16 +336,28 @@ HTML_TEMPLATE = '''
 
     {% if image_path %}
     <div class="container">
-        <img src="{{ image_path }}" alt="Processed image" style="max-width: 100%; border-radius: 10px;">
+        <img src="{{ image_path }}" alt="Processed image" style="max-width: 100%; border-radius: 10px;" id="describedImage">
     </div>
     {% endif %}
 
     {% if description %}
     <div class="container">
         <h2><i class="fas fa-comment-alt"></i> Description:</h2>
-        <div class="description-container">
+        <div class="description-container" id="descriptionText">
             {{ description }}
         </div>
+        <div class="zoom-controls">
+            <label for="image-size-slider"><i class="fas fa-search-plus"></i> Image Size:</label>
+            <input type="range" id="image-size-slider" min="50" max="200" value="100" oninput="resizeImage()" aria-label="Adjust image size">
+            <span id="image-size-value">100%</span>
+        </div>
+
+        <div class="text-size-controls">
+            <label for="text-size-slider"><i class="fas fa-font"></i> Text Size:</label>
+            <input type="range" id="text-size-slider" min="10" max="30" value="16" oninput="resizeText()" aria-label="Adjust text size">
+            <span id="text-size-value">16px</span>
+        </div>
+
         <div class="audio-player">
             <h3><i class="fas fa-volume-up"></i> Listen to Description:</h3>
             <audio controls style="width: 100%;">
@@ -376,6 +393,8 @@ HTML_TEMPLATE = '''
         // Form submission handling
         document.getElementById('descriptionForm').addEventListener('submit', function() {
             document.getElementById('loadingIndicator').style.display = 'block';
+            document.querySelector('.zoom-controls').style.display = 'none';
+            document.querySelector('.text-size-controls').style.display = 'none';
         });
 
         // File input handling
@@ -421,6 +440,35 @@ HTML_TEMPLATE = '''
             document.getElementById('image_file').files = files;
             handleFileSelect({target: {files: files}});
         }
+
+        function resizeImage() {
+            const image = document.getElementById('describedImage') || document.getElementById('imagePreview');
+            const slider = document.getElementById('image-size-slider');
+            const valueDisplay = document.getElementById('image-size-value');
+            
+            if (image) {
+                let scale = slider.value / 100;
+                image.style.transform = `scale(${scale})`;
+                valueDisplay.textContent = `${slider.value}%`;
+            }
+        }
+
+        function resizeText() {
+            const descriptionContainer = document.getElementById('descriptionText');
+            const slider = document.getElementById('text-size-slider');
+            const valueDisplay = document.getElementById('text-size-value');
+            
+            descriptionContainer.style.fontSize = `${slider.value}px`;
+            valueDisplay.textContent = `${slider.value}px`;
+        }
+
+        // Show controls after image or description is loaded
+        document.addEventListener('DOMContentLoaded', (event) => {
+            if (document.getElementById('describedImage') || document.getElementById('descriptionText')) {
+                document.querySelector('.zoom-controls').style.display = 'block';
+                document.querySelector('.text-size-controls').style.display = 'block';
+            }
+        });
     </script>
 </body>
 </html>
