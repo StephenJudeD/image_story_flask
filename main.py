@@ -428,11 +428,11 @@ def home():
             file = request.files['image_file']
             if file and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                # Save to static folder instead of uploads
+                filepath = os.path.join('static', filename)
                 file.save(filepath)
                 description = describer.describe_image(filepath, is_url=False)
-                # Clean up the uploaded file
-                os.remove(filepath)
+                # Don't remove the file anymore
         elif request.form['image_url']:
             image_url = request.form['image_url']
             description = describer.describe_image(image_url, is_url=True)
