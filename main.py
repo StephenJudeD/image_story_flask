@@ -328,6 +328,12 @@ HTML_TEMPLATE = '''
         </div>
     </div>
 
+    {% if image_path %}
+    <div class="container">
+        <img src="{{ image_path }}" alt="Processed image" style="max-width: 100%; border-radius: 10px;">
+    </div>
+    {% endif %}
+
     {% if description %}
     <div class="container">
         <h2><i class="fas fa-comment-alt"></i> Description:</h2>
@@ -422,25 +428,25 @@ HTML_TEMPLATE = '''
 @app.route('/', methods=['GET', 'POST'])
 def home():
     description = None
+    image_path = None
     if request.method == 'POST':
-        # Check if the post request has the file part
         if 'image_file' in request.files and request.files['image_file'].filename != '':
             file = request.files['image_file']
             if file and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
-                # Save to static folder instead of uploads
                 filepath = os.path.join('static', filename)
                 file.save(filepath)
                 description = describer.describe_image(filepath, is_url=False)
-                # Don't remove the file anymore
+                image_path = url_for('static', filename=filename)
         elif request.form['image_url']:
             image_url = request.form['image_url']
             description = describer.describe_image(image_url, is_url=True)
+            image_path = image_url
         
         if description and not description.startswith('Error'):
             describer.text_to_speech(description)
     
-    return render_template_string(HTML_TEMPLATE, description=description)
+    return render_template_string(HTML_TEMPLATE, description=description, image_path=image_path)
 
 if __name__ == '__main__':
     app.run(debug=True)
