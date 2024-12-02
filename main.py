@@ -97,7 +97,7 @@ class AccessibleImageDescriber:
                 "messages": [
                     {
                         "role": "user",
-                        "content": f"Using the following description, craft an image description optimized for an app used by visually impaired individuals. Ensure the description:\n- Starts with the main subject, describing what it is, its location, and what it's doing.\n- Moves from left to right, top to bottom, detailing the surrounding elements.\n- Describes colors, textures, and any notable patterns in a way that can be understood through touch or other senses.\n- Avoids subjective terms or metaphors; use straightforward, factual language.\n- Reads out any visible text or describes its appearance.\n- Mentions any actions, movements, or emotions in a clear manner.\n\nHere's a template:\n'The main subject is a [[TYPE OF OBJECT]], located in the [[POSITION]]. It is [[COLOR]], with a [[TEXTURE]] texture. To its left, there is [[DESCRIPTION OF LEFT ELEMENTS]]. To its right, [[DESCRIPTION OF RIGHT ELEMENTS]]. Above, [[TOP ELEMENTS]]. Below, [[BOTTOM ELEMENTS]]. The ambient environment is [[AMBIENCE]].'\n\nDescription to enhance: {initial_description}"
+                        "content": f"Using the following description, craft an image description optimized for an app used by visually impaired individuals. Don't comment on things, such as text or texture, if it is not relevant or not contained in the image. The description will be played using audio, so ensure proper punctuation etc. so that the speech audio is seamless. Please enhance the {initial_description} for visaully impaired individuals"
                     }
                 ],
                 "max_tokens": 300
