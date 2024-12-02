@@ -6,6 +6,7 @@ from flask import Flask, request, render_template_string, url_for
 from werkzeug.utils import secure_filename
 import pyttsx3
 from gtts import gTTS
+import uuid
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -97,7 +98,7 @@ class AccessibleImageDescriber:
                 "messages": [
                     {
                         "role": "user",
-                        "content": f"Using the following description, craft an image description optimized for an app used by visually impaired individuals. Don't comment on things, such as text or texture, if it is not relevant or not contained in the image. The description will be played using audio, so ensure proper punctuation etc. so that the speech audio is seamless. Please enhance the {initial_description} for visaully impaired individuals"
+                        "content": f"Using the following description, craft an image description optimized for an app used by visually impaired individuals. Don't comment on things, such as text or texture, if it is not relevant or not contained in the image. The description will be played using audio, so ensure proper punctuation etc. so that the speech audio is seamless. Please enhance the {initial_description} for visually impaired individuals"
                     }
                 ],
                 "max_tokens": 300
@@ -343,7 +344,7 @@ HTML_TEMPLATE = '''
         <div class="audio-player">
             <h3><i class="fas fa-volume-up"></i> Listen to Description:</h3>
             <audio controls style="width: 100%;">
-                <source src="{{ url_for('static', filename='description.mp3') }}" type="audio/mpeg">
+                <source src="{{ audio_path or url_for('static', filename='description.mp3') }}" type="audio/mpeg">
                 Your browser does not support the audio element.
             </audio>
         </div>
@@ -429,24 +430,40 @@ HTML_TEMPLATE = '''
 def home():
     description = None
     image_path = None
+    audio_path = None
+    
     if request.method == 'POST':
+        # Clear previous uploads
+        for file in os.listdir('static'):
+            file_path = os.path.join('static', file)
+            if file.startswith('description') or file.endswith(('jpg', 'jpeg', 'png', 'gif')):
+                try:
+                    os.unlink(file_path)
+                except Exception as e:
+                    logger.error(f"Error deleting file {file_path}: {e}")
+
         if 'image_file' in request.files and request.files['image_file'].filename != '':
             file = request.files['image_file']
             if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                filepath = os.path.join('static', filename)
+                # Generate unique filename for the image
+                image_filename = secure_filename(f"{uuid.uuid4()}_{file.filename}")
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], image_filename)
                 file.save(filepath)
                 description = describer.describe_image(filepath, is_url=False)
-                image_path = url_for('static', filename=filename)
+                image_path = url_for('static', filename=image_filename)
         elif request.form['image_url']:
             image_url = request.form['image_url']
             description = describer.describe_image(image_url, is_url=True)
             image_path = image_url
         
         if description and not description.startswith('Error'):
-            describer.text_to_speech(description)
+            # Generate unique filename for the audio
+            audio_filename = f"{uuid.uuid4()}.mp3"
+            if describer.text_to_speech(description, output_file=os.path.join('static', audio_filename)):
+                audio_path = url_for('static', filename=audio_filename)
     
-    return render_template_string(HTML_TEMPLATE, description=description, image_path=image_path)
+    # Update the template with new paths
+    return render_template_string(HTML_TEMPLATE, description=description, image_path=image_path, audio_path=audio_path)
 
 if __name__ == '__main__':
     app.run(debug=True)
