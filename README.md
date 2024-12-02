@@ -1,31 +1,44 @@
-# Image Story Generator
+# EyeSpeak - Visual Assistant
 
 ## Description
 
-The **Image Story Generator** is a Flask web application that allows users to upload an image, provide names of characters, specify a genre, and input the desired length of a story. The application processes the uploaded image and generates a descriptive story based on the visual content and user inputs using the OpenAI API.
+**EyeSpeak - Visual Assistant** is a Flask web application designed to provide detailed descriptions of images for visually impaired individuals. Users can either upload an image or provide an image URL, and the application will:
+
+- Analyze the image using advanced computer vision and natural language processing.
+- Generate a comprehensive description optimized for accessibility.
+- Convert the description to speech for an audio experience.
 
 ## Features
 
-- Upload images to generate stories
-- Specify character names and genres
-- Set desired story length
-- Dynamic generation of stories based on image analysis
+- Upload images or provide image URLs for analysis.
+- Generate descriptions tailored for visually impaired users.
+- Audio playback of the generated descriptions.
+- Dynamic image preview before processing.
+- Drag and drop functionality for image upload.
+- Accessibility enhancements for keyboard navigation and screen readers.
 
 ## Technologies Used
 
-- Python
-- Flask
-- OpenAI API
-- Bootstrap (for front-end styling)
-- Requests (for API calls)
-- Gunicorn (for deployment)
+- **Backend:** 
+  - Python
+  - Flask
+  - OpenAI API (for image analysis)
+  - gTTS (Google Text-to-Speech)
+  - pyttsx3 (Text-to-Speech)
+- **Frontend:**
+  - HTML5
+  - CSS3 (with custom styles and Font Awesome icons)
+  - JavaScript (for client-side interactivity)
+- **Deployment:**
+  - Gunicorn (for WSGI server)
+  - Heroku (for hosting)
 
 ## Getting Started
 
 ### Prerequisites
 
-- Python 3.6 or later
-- OpenAI API key (you can obtain one by signing up at [OpenAI](https://openai.com/))
+- Python 3.9 or later
+- An OpenAI API key (you can obtain one by signing up at [OpenAI](https://openai.com/))
 
 ### Installation
 
