@@ -16,7 +16,7 @@ class AccessibleImageDescriber:
     def __init__(self, logger):
         self.logger = logger
         self.api_key = os.getenv('OPENAI_API_KEY')
-        self.model = "gpt-4-vision-preview"
+        self.model = "gpt-4o-mini"
 
     def encode_image_url(self, image_url):
         try:
