@@ -296,6 +296,12 @@ HTML_TEMPLATE = '''
 </head>
 <body>
     <h1><i class="fas fa-eye"></i> EyeSpeak - Visual Assistant</h1>
+    <div class="container">
+    <p>EyeSpeak is an advanced visual assistance tool that helps visually impaired users understand images through detailed descriptions and audio feedback. Upload an image or provide a URL to get AI-powered descriptions.</p>
+    <a href="https://github.com/StephenJudeD/image_story_flask" target="_blank" class="submit-btn">
+        <i class="fab fa-github"></i> View on GitHub
+    </a>
+    </div>
     
     <div class="container">
         <form method="POST" enctype="multipart/form-data" id="descriptionForm">
