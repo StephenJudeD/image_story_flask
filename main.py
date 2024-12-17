@@ -2,28 +2,21 @@ import logging
 import base64
 import requests
 import os
-from flask import Flask, request, render_template_string, url_for
-from werkzeug.utils import secure_filename
-import pyttsx3
+import gradio as gr
 from gtts import gTTS
 import uuid
+from PIL import Image
+import tempfile
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Constants for file upload
-UPLOAD_FOLDER = 'static/uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 class AccessibleImageDescriber:
     def __init__(self, logger):
         self.logger = logger
         self.api_key = os.getenv('OPENAI_API_KEY')
-        self.model = "gpt-4o-mini"
+        self.model = "gpt-4-vision-preview"
 
     def encode_image_url(self, image_url):
         try:
@@ -43,7 +36,6 @@ class AccessibleImageDescriber:
 
     def describe_image(self, image_input, is_url=True):
         try:
-            # Encode the image
             if is_url:
                 base64_image = self.encode_image_url(image_input)
             else:
@@ -57,7 +49,6 @@ class AccessibleImageDescriber:
                 "Authorization": f"Bearer {self.api_key}"
             }
 
-            # First prompt - Get initial description
             initial_payload = {
                 "model": self.model,
                 "messages": [
@@ -66,7 +57,7 @@ class AccessibleImageDescriber:
                         "content": [
                             {
                                 "type": "text",
-                                "text": "Provide a detailed description of this image for visually impaired users. Start with the main subject(s) or object(s), then describe their location from left to right, top to bottom. Include:\n1. **Main subjects/objects**: Describe what they are and their actions if any.\n2. **Locations**: Specify where things are in relation to each other.\n3. **Colors and Patterns**: Describe colors and any visible patterns or textures.\n4. **Text**: If there is any text in the image, read it out or describe its appearance.\n5. **Environment/Ambience**: Describe the setting or scene, including lighting, weather, or any notable background elements.\n6. **Human Feelings**: If applicable, mention any emotions conveyed by human subjects.\n\nPlease avoid metaphors, idioms, or subjective terms that might not be clear to someone without visual experience. If it is a person or place that is well known, comment as such and include this in the detail, for example a famous person, or a famous place"
+                                "text": "Provide a detailed description of this image for visually impaired users. Include main subjects, locations, colors, patterns, text if any, and environment/ambience."
                             },
                             {
                                 "type": "image_url",
@@ -92,13 +83,12 @@ class AccessibleImageDescriber:
 
             initial_description = initial_response.json()['choices'][0]['message']['content']
 
-            # Second prompt - Enhance for visually impaired users
             enhance_payload = {
                 "model": self.model,
                 "messages": [
                     {
                         "role": "user",
-                        "content": f"Using the following description, craft an image description optimized for an app used by visually impaired individuals. Don't comment on things, such as text or texture, if it is not relevant or not contained in the image. The description will be played using audio, so ensure proper punctuation etc. so that the speech audio is seamless. Please enhance the {initial_description} for visually impaired individuals"
+                        "content": f"Enhance this description for visually impaired users: {initial_description}"
                     }
                 ],
                 "max_tokens": 300
@@ -120,398 +110,156 @@ class AccessibleImageDescriber:
             self.logger.error(f"Error describing image: {str(e)}")
             return f"Error: {str(e)}"
 
-    def text_to_speech(self, text, output_file="static/description.mp3"):
-        try:
-            tts = gTTS(text=text, lang='en')
-            tts.save(output_file)
-            return True
-        except Exception as e:
-            self.logger.error(f"Error converting text to speech: {str(e)}")
-            return False
-
-app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-describer = AccessibleImageDescriber(logger)
-
-# Ensure upload folders exist
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs('static', exist_ok=True)
-
-HTML_TEMPLATE = '''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>EyeSpeak - Visual Assistant</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-color: #2196F3;
-            --text-color: #333;
-            --background: #f8f9fa;
-        }
+def process_image(image, text_size="medium", image_size="medium", speech_speed="1.0"):
+    """
+    Process the image with customizable text and image sizes and speech speed
+    """
+    try:
+        describer = AccessibleImageDescriber(logger)
         
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: var(--background);
-            color: var(--text-color);
-        }
+        # Resize image based on selected size
+        if image_size == "large":
+            new_size = (800, 800)
+        elif image_size == "small":
+            new_size = (400, 400)
+        else:  # medium
+            new_size = (600, 600)
         
-        h1 {
-            font-size: 2.5em;
-            text-align: center;
-            color: var(--primary-color);
-            margin-bottom: 30px;
-        }
+        # Create a copy of the image for resizing
+        img_copy = image.copy()
+        img_copy.thumbnail(new_size, Image.Resampling.LANCZOS)
         
-        .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-        }
+        # Save temporary image
+        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as temp_img:
+            temp_path = temp_img.name
+            img_copy.save(temp_path)
         
-        .input-group {
-            margin-bottom: 25px;
-        }
+        # Get description
+        description = describer.describe_image(temp_path, is_url=False)
         
-        label {
-            font-size: 1.2em;
-            display: block;
-            margin-bottom: 10px;
-        }
+        # Generate audio with specified speed
+        with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as temp_audio:
+            audio_path = temp_audio.name
+            if description and not description.startswith('Error'):
+                tts = gTTS(text=description, lang='en', slow=(speech_speed == "0.75"))
+                tts.save(audio_path)
         
-        input[type="text"], input[type="range"] {
-            width: 100%;
-            padding: 15px;
-            font-size: 1.1em;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
+        # Clean up temporary image file
+        os.unlink(temp_path)
         
-        .file-upload {
-            text-align: center;
-            padding: 20px;
-            border: 3px dashed #ddd;
-            border-radius: 10px;
-            cursor: pointer;
-        }
+        # Apply text size styling
+        if text_size == "large":
+            description = f"<div style='font-size: 24px'>{description}</div>"
+        elif text_size == "small":
+            description = f"<div style='font-size: 14px'>{description}</div>"
+        else:  # medium
+            description = f"<div style='font-size: 18px'>{description}</div>"
         
-        .submit-btn {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 15px 30px;
-            font-size: 1.2em;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        
-        .submit-btn:hover {
-            background-color: #1976D2;
-        }
-        
-        .preview-image {
-            max-width: 100%;
-            margin: 20px 0;
-            border-radius: 10px;
-            display: none;
-        }
-        
-        .loading {
-            display: none;
-            text-align: center;
-            margin: 20px 0;
-        }
-        
-        .loading-bar {
-            height: 4px;
-            background-color: #ddd;
-            border-radius: 2px;
-            overflow: hidden;
-            position: relative;
-        }
-        
-        .loading-bar::after {
-            content: '';
-            position: absolute;
-            left: -50%;
-            height: 100%;
-            width: 50%;
-            background-color: var(--primary-color);
-            animation: loading 1s linear infinite;
-        }
-        
-        .description-container {
-            font-size: 1.2em;
-            line-height: 1.6;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 10px;
-            margin-top: 20px;
-        }
-        
-        .audio-player {
-            width: 100%;
-            margin-top: 20px;
-        }
-        
-        .zoom-controls, .text-size-controls {
-            margin-top: 20px;
-            display: none;
-        }
-        
-        @keyframes loading {
-            0% { left: -50% }
-            100% { left: 100% }
-        }
-        
-        /* Accessibility Enhancements */
-        *:focus {
-            outline: 3px solid var(--primary-color);
-            outline-offset: 2px;
-        }
-        
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0,0,0,0);
-            border: 0;
-        }
-    </style>
-</head>
-<body>
-    <h1><i class="fas fa-eye"></i> EyeSpeak - Visual Assistant</h1>
+        return description, audio_path
     
-    <div class="container">
-        <form method="POST" enctype="multipart/form-data" id="descriptionForm">
-            <div class="input-group">
-                <label for="image_url">
-                    <i class="fas fa-link"></i> Enter Image URL:
-                </label>
-                <input type="text" id="image_url" name="image_url" 
-                       placeholder="https://example.com/image.jpg"
-                       aria-label="Enter image URL">
-            </div>
-            
-            <div class="input-group">
-                <label for="image_file">
-                    <i class="fas fa-upload"></i> Upload Image
-                </label>
-                <div class="file-upload" id="dropZone">
-                    <input type="file" id="image_file" name="image_file" 
-                           accept=".jpg,.jpeg,.png,.gif" 
-                           style="display: none;">
-                    <i class="fas fa-cloud-upload-alt fa-3x"></i>
-                    <p>Click or drag image here</p>
-                </div>
-            </div>
+    except Exception as e:
+        logger.error(f"Error in process_image: {str(e)}")
+        return f"Error processing image: {str(e)}", None
 
-            <img id="imagePreview" class="preview-image" alt="Image preview">
-            
-            <button type="submit" class="submit-btn">
-                <i class="fas fa-magic"></i> Describe Image
-            </button>
-        </form>
-        
-        <div class="loading" id="loadingIndicator">
-            <p><i class="fas fa-spinner fa-spin"></i> Processing image...</p>
-            <div class="loading-bar"></div>
-        </div>
-    </div>
-
-    {% if image_path %}
-    <div class="container">
-        <img src="{{ image_path }}" alt="Processed image" style="max-width: 100%; border-radius: 10px;" id="describedImage">
-    </div>
-    {% endif %}
-
-    {% if description %}
-    <div class="container">
-        <h2><i class="fas fa-comment-alt"></i> Description:</h2>
-        <div class="description-container" id="descriptionText">
-            {{ description }}
-        </div>
-        <div class="zoom-controls">
-            <label for="image-size-slider"><i class="fas fa-search-plus"></i> Image Size:</label>
-            <input type="range" id="image-size-slider" min="50" max="200" value="100" oninput="resizeImage()" aria-label="Adjust image size">
-            <span id="image-size-value">100%</span>
-        </div>
-
-        <div class="text-size-controls">
-            <label for="text-size-slider"><i class="fas fa-font"></i> Text Size:</label>
-            <input type="range" id="text-size-slider" min="10" max="30" value="16" oninput="resizeText()" aria-label="Adjust text size">
-            <span id="text-size-value">16px</span>
-        </div>
-
-        <div class="audio-player">
-            <h3><i class="fas fa-volume-up"></i> Listen to Description:</h3>
-            <audio controls style="width: 100%;">
-                <source src="{{ audio_path or url_for('static', filename='description.mp3') }}" type="audio/mpeg">
-                Your browser does not support the audio element.
-            </audio>
-        </div>
-    </div>
-    {% endif %}
-
-    <script>
-        // Image preview functionality
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const preview = document.getElementById('imagePreview');
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                }
-                reader.readAsDataURL(file);
-            }
-        }
-
-        // URL preview functionality
-        document.getElementById('image_url').addEventListener('change', function() {
-            const preview = document.getElementById('imagePreview');
-            preview.src = this.value;
-            preview.style.display = 'block';
-        });
-
-        // Form submission handling
-        document.getElementById('descriptionForm').addEventListener('submit', function() {
-            document.getElementById('loadingIndicator').style.display = 'block';
-            document.querySelector('.zoom-controls').style.display = 'none';
-            document.querySelector('.text-size-controls').style.display = 'none';
-        });
-
-        // File input handling
-        document.getElementById('image_file').addEventListener('change', handleFileSelect);
-        
-        // Drag and drop functionality
-        const dropZone = document.getElementById('dropZone');
-        
-        dropZone.addEventListener('click', () => {
-            document.getElementById('image_file').click();
-        });
-
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults, false);
-        });
-
-        function preventDefaults (e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, highlight, false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, unhighlight, false);
-        });
-
-        function highlight(e) {
-            dropZone.classList.add('highlight');
-        }
-
-        function unhighlight(e) {
-            dropZone.classList.remove('highlight');
-        }
-
-        dropZone.addEventListener('drop', handleDrop, false);
-
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            document.getElementById('image_file').files = files;
-            handleFileSelect({target: {files: files}});
-        }
-
-        function resizeImage() {
-            const image = document.getElementById('describedImage') || document.getElementById('imagePreview');
-            const slider = document.getElementById('image-size-slider');
-            const valueDisplay = document.getElementById('image-size-value');
-            
-            if (image) {
-                let scale = slider.value / 100;
-                image.style.transform = `scale(${scale})`;
-                valueDisplay.textContent = `${slider.value}%`;
-            }
-        }
-
-        function resizeText() {
-            const descriptionContainer = document.getElementById('descriptionText');
-            const slider = document.getElementById('text-size-slider');
-            const valueDisplay = document.getElementById('text-size-value');
-            
-            descriptionContainer.style.fontSize = `${slider.value}px`;
-            valueDisplay.textContent = `${slider.value}px`;
-        }
-
-        // Show controls after image or description is loaded
-        document.addEventListener('DOMContentLoaded', (event) => {
-            if (document.getElementById('describedImage') || document.getElementById('descriptionText')) {
-                document.querySelector('.zoom-controls').style.display = 'block';
-                document.querySelector('.text-size-controls').style.display = 'block';
-            }
-        });
-    </script>
-</body>
-</html>
-'''
-
-@app.route('/', methods=['GET', 'POST'])
-def home():
-    description = None
-    image_path = None
-    audio_path = None
+def create_interface():
+    # Custom CSS for better appearance and accessibility
+    custom_css = """
+    #image_box { min-height: 400px; }
+    .gradio-container { max-width: 1200px; margin: auto; }
+    .description-text { line-height: 1.6; }
+    .controls-panel { padding: 20px; }
+    """
     
-    if request.method == 'POST':
-        # Clear previous uploads
-        for file in os.listdir('static'):
-            file_path = os.path.join('static', file)
-            if file.startswith('description') or file.endswith(('jpg', 'jpeg', 'png', 'gif')):
-                try:
-                    os.unlink(file_path)
-                except Exception as e:
-                    logger.error(f"Error deleting file {file_path}: {e}")
-
-        if 'image_file' in request.files and request.files['image_file'].filename != '':
-            file = request.files['image_file']
-            if file and allowed_file(file.filename):
-                # Generate unique filename for the image
-                image_filename = secure_filename(f"{uuid.uuid4()}_{file.filename}")
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], image_filename)
-                file.save(filepath)
-                description = describer.describe_image(filepath, is_url=False)
-                image_path = url_for('static', filename=image_filename)
-        elif request.form['image_url']:
-            image_url = request.form['image_url']
-            description = describer.describe_image(image_url, is_url=True)
-            image_path = image_url
+    with gr.Blocks(css=custom_css, title="EyeSpeak - Visual Assistant") as demo:
+        gr.Markdown(
+            """
+            # 👁️ EyeSpeak - Visual Assistant
+            ### AI-Powered Image Description for Visual Accessibility
+            """
+        )
         
-        if description and not description.startswith('Error'):
-            # Generate unique filename for the audio
-            audio_filename = f"{uuid.uuid4()}.mp3"
-            if describer.text_to_speech(description, output_file=os.path.join('static', audio_filename)):
-                audio_path = url_for('static', filename=audio_filename)
+        with gr.Row():
+            with gr.Column(scale=1):
+                # Input components
+                image_input = gr.Image(
+                    type="pil",
+                    label="Upload or Drop Image Here",
+                    elem_id="image_box"
+                )
+                
+                with gr.Row():
+                    text_size = gr.Radio(
+                        choices=["small", "medium", "large"],
+                        value="medium",
+                        label="Text Size",
+                        interactive=True
+                    )
+                    image_size = gr.Radio(
+                        choices=["small", "medium", "large"],
+                        value="medium",
+                        label="Image Size",
+                        interactive=True
+                    )
+                    speech_speed = gr.Radio(
+                        choices=["0.75", "1.0", "1.25"],
+                        value="1.0",
+                        label="Speech Speed",
+                        interactive=True
+                    )
+                
+                submit_btn = gr.Button(
+                    "🔍 Describe Image",
+                    variant="primary",
+                    size="lg"
+                )
+            
+            with gr.Column(scale=1):
+                # Output components
+                description_out = gr.HTML(
+                    label="Image Description",
+                    elem_classes="description-text"
+                )
+                audio_out = gr.Audio(
+                    label="🔊 Listen to Description",
+                    show_label=True
+                )
+        
+        # Handle image processing
+        submit_btn.click(
+            fn=process_image,
+            inputs=[image_input, text_size, image_size, speech_speed],
+            outputs=[description_out, audio_out]
+        )
+        
+        # Usage instructions
+        gr.Markdown(
+            """
+            ### 📝 How to Use:
+            1. Upload an image or drag and drop it into the image box
+            2. Adjust text size, image size, and speech speed as needed
+            3. Click the 'Describe Image' button
+            4. Read the detailed description or listen to the audio version
+            
+            ### ℹ️ Features:
+            - Adjustable text size for better readability
+            - Customizable image size
+            - Variable speech speed for audio playback
+            - Detailed visual description optimized for screen readers
+            - Text-to-speech audio generation
+            - Support for various image formats
+            """
+        )
     
-    # Update the template with new paths
-    return render_template_string(HTML_TEMPLATE, description=description, image_path=image_path, audio_path=audio_path)
+    return demo
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# Create and launch the app
+if __name__ == "__main__":
+    # Launch the interface
+    demo = create_interface()
+    demo.launch(
+        share=True,  # Enable sharing
+        enable_queue=True,  # Enable queue for multiple users
+        show_error=True,  # Show errors in the interface
+        server_name="0.0.0.0",  # Make accessible from all network interfaces
+        server_port=7860  # Default Gradio port
+    )
